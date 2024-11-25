@@ -30,7 +30,7 @@ jobs:
 
     - name: install important packages
       run: |
-        pacman -S --noconfirm ccache zip unzip clang-18 cmake
+        pacman -S --noconfirm ccache zip unzip clang cmake
 
         # ed allows in-place file editing
         pacman -S --noconfirm meson ninja pkg-config ed
