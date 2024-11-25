@@ -1,5 +1,12 @@
 name: 8605
 
+env:
+  # The name of the main module repository
+  main_project_module: app
+
+  # The name of the Play Store
+  playstore_name: smallville7123
+
 on:
   push:
     branches: [ main ]
@@ -9,6 +16,53 @@ on:
     # manual trigger
   #schedule:
   #  - cron: '0 0 * * *' # https://crontab.guru
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Set Current Date As Env Variable
+      - name: Set current date as env variable
+        run: echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      # Set Repository Name As Env Variable
+      - name: Set repository name as env variable
+        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu' # See 'Supported distributions' for available options
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Change wrapper permissions
+        run: chmod +x ./apk/gradlew
+
+      # Run Tests Build
+      - name: Run gradle tests
+        run: cd apk ; ./gradlew test
+
+      # Run Build Project
+      - name: Build gradle project
+        run: cd apk ; ./gradlew build
+
+      # Create APK Debug
+      - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
+        run: cd apk ; ./gradlew assembleDebug
+
+      # Create APK Release
+      - name: Build apk release project (APK) - ${{ env.main_project_module }} module
+        run: cd apk ; ./gradlew assemble
+
+      # Create Bundle AAB Release
+      # Noted for main module build [main_project_module]:bundleRelease
+      - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
+        run: cd apk ; ./gradlew ${{ env.main_project_module }}:bundleRelease
 
 permissions:
   contents: write
