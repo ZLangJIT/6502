@@ -10,6 +10,9 @@ on:
   #schedule:
   #  - cron: '0 0 * * *' # https://crontab.guru
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
