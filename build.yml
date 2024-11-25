@@ -1,0 +1,615 @@
+name: Kernel CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    # manual trigger
+  #schedule:
+  #  - cron: '0 0 * * *' # https://crontab.guru
+
+env:
+  IS_LTS: NO
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: locietta/loia-dev-base:latest
+    environment: env
+    outputs:
+      current_version: ${{ steps.out.outputs.current_version }}
+      release_version: ${{ steps.out.outputs.release_version }}
+      clang_version:   ${{ steps.out.outputs.clang_version }}
+      rebuild_flag:    ${{ steps.out.outputs.rebuild_flag }}
+
+    strategy:
+      matrix:
+        include:
+          - arch: riscv
+
+    steps:
+
+    - uses: actions/checkout@main
+
+    - name: Trust this directory
+      run: git config --global --add safe.directory '*' # v2.35.3 or later
+
+    - name: Update pacman repository + keyring
+      run: |
+        pacman -Sy --noconfirm archlinux-keyring archlinuxcn-keyring
+        pacman -Su --noconfirm
+        echo "HAVE_TMATE=0" | tee -a $GITHUB_ENV
+
+    - name: Install tmate (remote terminal)
+      run: |
+        pacman -S --noconfirm tmate
+        echo "HAVE_TMATE=1" | tee -a $GITHUB_ENV
+
+    - name: run tmate in background
+      if: ${{ env.HAVE_TMATE == '1' }}
+      run: |
+        nohup script /dev/null -c 'tmate -F -v -2 new-session -d -P bash' &
+        sleep 2
+
+    - name: install important packages
+      run: |
+        pacman -S --noconfirm ccache zip unzip
+
+        # meson is required by epoxy and virgl
+        # ed allows in-place file editing
+        pacman -S --noconfirm meson ninja pkg-config ed
+
+    - name: Initialize ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        max-size: 2048M
+        key: ${{ github.job }}-${{ matrix.arch }}
+
+    - name: Prepare source code
+      shell: bash
+      run: |
+        cp monitor_memory.sh /tmp/monitor_memory.sh ; chmod +x /tmp/monitor_memory.sh
+        pacman -S --noconfirm rsync wget
+        useradd -m build
+        echo "build ALL=(ALL:ALL) ALL" >> /etc/sudoers
+        mkdir build_dir
+        chown build:build build_dir
+        chmod 777 build_dir
+
+    - name: Prepare patches
+      shell: bash
+      run: |
+        bash -c "./compute_libmedia_version.sh" | tee -a $GITHUB_ENV
+
+    - name: Install dependencies
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' }}
+      id: dep
+      run: |
+        pacman -S --noconfirm pahole xmlto inetutils bc cpio jq llvm llvm-libs clang lld
+        pacman -S --noconfirm riscv64-linux-gnu-gcc riscv64-linux-gnu-glibc riscv64-linux-gnu-linux-api-headers
+        pacman -S --noconfirm riscv64-unknown-elf-gcc
+        ln -s /usr/riscv64-linux-gnu/include/linux /usr/riscv64-linux-gnu/usr/include/linux || true
+        echo "CLANG_VERSION=$(pacman -Qs clang | grep local/clang | sed 's#^.*local\/clang.*[^0-9]\(.*\) (\(.*\))#\1#')" | tee -a $GITHUB_ENV
+
+    - name: Clone buildroot
+      if: ${{ env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        su --command="R=$(cat git_reset_buildroot) ; cd build_dir ; git clone https://gitlab.com/buildroot.org/buildroot buildroot ; cd buildroot ; git reset --hard $R" build
+
+    - name: Patch buildroot [buildroot]
+      if: ${{ env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        su --command="set -v ; cd build_dir/buildroot ; git apply --allow-empty ../../buildroot.patch" build
+
+    - name: Build rootfs [buildroot]
+      if: ${{ env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        #if [ "$(cat /sys/devices/system/cpu/smt/active)" = "1" ]; then
+        #    export LOGICAL_CORES=$(($(nproc --all) * 2))
+        #else
+        #    export LOGICAL_CORES=$(nproc --all)
+        #fi
+        # build with only 1 core to try to avoid exccessive resource consumption in github CI
+        export LOGICAL_CORES=1
+        export BR2_CCACHE_DIR="$CCACHE_DIR"
+        su --command="echo building with $LOGICAL_CORES logical cores ; cd build_dir/buildroot ; cp ../../.buildrootconfig .config ; /tmp/monitor_memory.sh & make CC='ccache clang -Qunused-arguments -fcolor-diagnostics' ARCH=riscv LLVM=1 LLVM_IAS=1 -j$LOGICAL_CORES" build
+
+    - name: Download rootfs [buildroot]
+      if: ${{ env.REBUILD_BUILDROOT_FLAG == '' }}
+      run: |
+        su --command="cd build_dir ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-buildroot/rootfs.cpio ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-buildroot/rootfs.cpio.sha256" build
+
+    - name: Copy rootfs [buildroot]
+      if: ${{ env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        su --command="cd build_dir/buildroot ; pwd ; ls -lahp output/images ; cp output/images/rootfs.cpio ../rootfs.cpio ; sha256sum ../rootfs.cpio > ../rootfs.cpio.sha256" build
+
+    - name: Release rootfs [buildroot]
+      if: ${{ env.REBUILD_BUILDROOT_FLAG != '' }}
+      uses: softprops/action-gh-release@master
+      with:
+        name:  patches-buildroot
+        tag_name:  patches-buildroot
+        body: |
+          buildroot
+        files: |
+          buildroot.patch
+          buildroot.patch.latest.minor
+          buildroot.patch.latest.major
+          buildroot.patch.latest.version_code
+          build_dir/rootfs.cpio
+          build_dir/rootfs.cpio.sha256
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fail_on_unmatched_files: true
+
+    - name: Remove buildroot
+      if: ${{ env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        rm -rf build_dir/buildroot
+
+    - name: Clone linux 6.11
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        su --command="R=$(cat git_reset_kernel) ; cd build_dir ; git clone https://github.com/torvalds/linux -b v6.11 --depth 1 linux-xlnx ; cd linux-xlnx ; git reset --hard $R" build
+
+    - name: Patch kernel [linux 6.11]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        su --command="set -v ; cd build_dir/linux-xlnx ; git apply --allow-empty ../../kernel.patch" build
+
+    - name: Build kernel [linux 6.11]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        if [ "$(cat /sys/devices/system/cpu/smt/active)" = "1" ]; then
+            export LOGICAL_CORES=$(($(nproc --all) * 2))
+        else
+            export LOGICAL_CORES=$(nproc --all)
+        fi
+        su --command="echo building with $LOGICAL_CORES logical cores ; cd build_dir/linux-xlnx ; ls -lhap .. ; cp ../../.linuxconfig .config ; /tmp/monitor_memory.sh & make CC='ccache clang -Qunused-arguments -fcolor-diagnostics' ARCH=riscv LLVM=1 LLVM_IAS=1 -j$LOGICAL_CORES V=2" build
+
+    - name: Download kernel [linux 6.11]
+      if: ${{ env.REBUILD_KERNEL_FLAG == '' && env.REBUILD_BUILDROOT_FLAG == '' }}
+      run: |
+        su --command="cd build_dir ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-kernel/Image ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-kernel/Image.sha256 ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-kernel/Image.gz ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-kernel/Image.gz.sha256 ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-kernel/vmlinux ; wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-kernel/vmlinux.sha256" build
+
+    - name: Copy kernel [linux 6.11]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        su --command="cd build_dir/linux-xlnx ; pwd ; ls -lahp arch/riscv/boot ; pwd ; ls -l ; cp arch/riscv/boot/Image ../Image ; sha256sum ../Image > ../Image.sha256 ; cp arch/riscv/boot/Image.gz ../Image.gz ; sha256sum ../Image.gz > ../Image.gz.sha256 ; cp vmlinux ../vmlinux ; sha256sum ../vmlinux > ../vmlinux.sha256" build
+
+    - name: Release kernel [linux 6.11]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' }}
+      uses: softprops/action-gh-release@master
+      with:
+        name:  patches-kernel
+        tag_name:  patches-kernel
+        body: |
+          kernel
+        files: |
+          kernel.patch
+          kernel.patch.latest.minor
+          kernel.patch.latest.major
+          kernel.patch.latest.version_code
+          build_dir/Image
+          build_dir/Image.sha256
+          build_dir/Image.gz
+          build_dir/Image.gz.sha256
+          build_dir/vmlinux
+          build_dir/vmlinux.sha256
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fail_on_unmatched_files: true
+
+    - name: Remove linux 6.11
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' }}
+      run: |
+        rm -rf build_dir/linux-xlnx
+
+    - name: Install android commandline-tools + JDK17 + JDK8
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        TOOLS_URL=$(wget -qO- http://developer.android.com/sdk/index.html | grep latest.zip | grep linux | grep href | grep -o https.*zip)
+        TOOLS_FILE=$(echo $TOOLS_URL | grep -o command.*zip)
+        cd / ; echo "downloading $TOOLS_FILE ..." ; wget --no-verbose $TOOLS_URL -O $TOOLS_FILE ; unzip $TOOLS_FILE ; bash -c "rm $TOOLS_FILE || true"
+        pacman -S --noconfirm jdk17-openjdk jdk8-openjdk
+        archlinux-java status
+        archlinux-java set java-17-openjdk
+
+    - name: Init env
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        FILE=~/.bashrc
+        echo "export ANDROID_HOME=/android-sdk" >> $FILE
+        echo "export ANDROID_SDK=/android-sdk" >> $FILE
+        echo "export ANDROID_SDK_ROOT=/android-sdk" >> $FILE
+        echo "export ANDROID_SDK_PATH=/android-sdk" >> $FILE
+        echo "export PATH=$PATH:/android-sdk/platform-tools" >> $FILE
+
+    - name: Test sdkmanager
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        export PATH=$PATH:/cmdline-tools/bin
+        echo $PATH
+        which sdkmanager
+        sdkmanager --help || true # sdkmanager exits with code 1
+
+    - name: List sdkmanager packages
+      #
+      # this can take up to 5 mins so we disable this
+      #
+      # can enable to "poke" the list
+      #
+      if: false && ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        export PATH=$PATH:/cmdline-tools/bin
+        sdkmanager --list --sdk_root=/android-sdk || true
+
+    - name: Accept sdkmanager Licenses
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        export PATH=$PATH:/cmdline-tools/bin
+        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
+
+    - name: Verify sdkmanager Licenses
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        export PATH=$PATH:/cmdline-tools/bin
+        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
+
+    - name: Install sdkmanager cmdline-tools
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        export PATH=$PATH:/cmdline-tools/bin
+        yes | sdkmanager --install "cmdline-tools;latest" --sdk_root=/android-sdk || true
+        ls -l /android-sdk
+        ls -l /android-sdk/cmdline-tools
+        ls -l /android-sdk/cmdline-tools/latest
+        ls -l /android-sdk/cmdline-tools/latest/bin
+
+    - name: Switch to sdkmanager cmdline-tools
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        echo "export PATH=$PATH:/android-sdk/cmdline-tools/latest/bin" >> ~/.bashrc
+        rm -rf /cmdline-tools*
+
+
+    - name: Install sdkmanager support repository
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        yes | sdkmanager --install "extras;android;m2repository" --sdk_root=/android-sdk || true
+
+    - name: Accept sdkmanager Licenses
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
+
+    - name: Verify sdkmanager Licenses
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
+
+    - name: List sdkmanager packages
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        sdkmanager --list --sdk_root=/android-sdk || true
+
+    - name: Install ndk 21
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        yes | sdkmanager --install "ndk;21.4.7075529" --sdk_root=/android-sdk || true
+
+    - name: Install cmake 3.18.1
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        yes | sdkmanager --install "cmake;3.18.1" --sdk_root=/android-sdk || true
+
+    - name: Clone libmedia [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        git clone https://github.com/mgood7123/libmedia --depth=1 linux.kernel.rvvm
+
+
+    - name: Patch [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        set -v
+        git config --global user.name "ZLangJIT"
+        git config --global user.email "root@no.email.yet.com"
+        cd linux.kernel.rvvm
+        git apply --allow-empty ../libmedia_build.patch
+
+    - name: Remove uneeded dirs [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        cd linux.kernel.rvvm
+        rm -rf ffmpeg
+        rm -rf ADB_PULL_DATA.media.player.pro
+        rm -rf APKS
+        rm -rf app/debug
+        rm -rf app/release
+        rm -rf app/libs/arm64-v8a/*
+        rm -rf app/src/main/assets/0*
+        rm -rf app/src/main/assets/CLAP.raw
+        rm -rf app/src/main/assets/FUNKY_HOUSE.raw
+        rm -rf app/src/main/assets/Rhythm8
+        rm -rf app/src/main/assets/usr/libs/arm64-v8a/*
+
+    - name: Patch [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        set -v
+        git config --global user.name "ZLangJIT"
+        git config --global user.email "root@no.email.yet.com"
+        cd linux.kernel.rvvm
+        #git add -A ; git commit -m "reset point"
+        #git log --pretty=format:'%H' -n 1 > ../git_reset_libmedia
+        git apply --allow-empty ../libmedia.patch
+        cd app/src/main/java/libengine
+        cd epoxy
+        mv .git0 .git
+        git reset --hard $(cat ../../../../../../../git_reset_epoxy)
+        #git commit --allow-empty -m "reset point" ; git log -n 1
+        #git log --pretty=format:'%H' -n 1 > ../../../../../../../git_reset_epoxy
+        #cp -R ../epoxy ../epoxy.reset
+        git apply --allow-empty ../../../../../../../epoxy.patch
+        cd ../virglrenderer
+        mv .git0 .git
+        git reset --hard $(cat ../../../../../../../git_reset_virglrenderer)
+        #git commit --allow-empty -m "reset point" ; git log -n 1
+        #git log --pretty=format:'%H' -n 1 > ../../../../../../../git_reset_virglrenderer
+        #cp -R ../virglrenderer ../virglrenderer.reset
+        git apply --allow-empty ../../../../../../../virglrenderer.patch
+        cd ../RVVM
+        mv .git0 .git
+        git reset --hard $(cat ../../../../../../../git_reset_rvvm)
+        #git commit --allow-empty -m "reset point" ; git log -n 1
+        #git log --pretty=format:'%H' -n 1 > ../../../../../../../git_reset_rvvm
+        #cp -R ../RVVM ../RVVM.reset
+        git apply --allow-empty ../../../../../../../rvvm.patch
+
+    - name: Grant execute permission for gradlew [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        chmod +x linux.kernel.rvvm/gradlew
+
+    - name: Copy built kernel [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        cd linux.kernel.rvvm
+        cp ../build_dir/Image.gz app/src/main/assets/Image.gz
+
+    - name: Check keystore [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        cd linux.kernel.rvvm/app
+        if wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/keystore/keystore
+          then
+            echo "HAVE_KEYSTORE=1" | tee -a $GITHUB_ENV
+          else
+            echo "HAVE_KEYSTORE=" | tee -a $GITHUB_ENV
+        fi
+
+    - name: Create keystore [linux.kernel.rvvm]
+      if: ${{ env.HAVE_KEYSTORE == '' && (env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '') }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        archlinux-java set java-8-openjdk
+        cd linux.kernel.rvvm/app
+        printf "123456\n123456\nUnknown1\nUnknown2\nUnknown3\nUnknown4\nUnknown5\nUnknown6\nyes\n123456\n123456" | keytool -genkey -v -keystore keystore -alias keystore -keyalg RSA -keysize 2048 -validity 10000
+
+    - name: Release keystore [linux.kernel.rvvm]
+      if: ${{ env.HAVE_KEYSTORE == '' && (env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '') }}
+      uses: softprops/action-gh-release@master
+      with:
+        name:  keystore
+        tag_name:  keystore
+        body: |
+          keystore
+        files: |
+          linux.kernel.rvvm/app/keystore
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fail_on_unmatched_files: true
+
+    - name: Build with Gradle [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        archlinux-java set java-8-openjdk
+        cd linux.kernel.rvvm
+        printf '%s\n' ",s/LIBMEDIA_GRADLE_VERSION_CODE/$LIBMEDIA_GRADLE_VERSION_CODE/g" w q | ed app/build.gradle
+        printf '%s\n' ",s/LIBMEDIA_GRADLE_VERSION_STRING/$LIBMEDIA_GRADLE_VERSION_STRING/g" w q | ed app/build.gradle
+
+        # info shows cmake output but also tons of Transforming Artifact output
+        if ./gradlew build --info
+            then
+                echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
+            else
+                echo "GRADLE_RETURN_CODE=1" | tee -a $GITHUB_ENV
+        fi
+
+    - name: APK build failed - print last 600 lines from cmake [linux.kernel.rvvm]
+      if: ${{ env.GRADLE_RETURN_CODE == '1' }}
+      shell: bash
+      run: |
+        echo "printing the last 600 lines from linux.kernel.rvvm/app/.../cmake_server_log.txt"
+        tail -n 600 linux.kernel.rvvm/app/.cxx/cmake/debug/arm64-v8a/cmake_server_log.txt
+        false
+
+    - name: Build debug APK [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        cd linux.kernel.rvvm
+        ./gradlew assembleDebug --stacktrace
+
+    - name: Build release APK [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      shell: bash
+      run: |
+        . ~/.bashrc
+        cd linux.kernel.rvvm
+        ./gradlew assembleRelease --stacktrace
+
+    - name: Move apk
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      run: |
+        ls -alh linux.kernel.rvvm/app/build/outputs/apk/*
+        mv linux.kernel.rvvm/app/build/outputs/apk/debug/app-debug.apk linux.kernel.rvvm.debug.apk
+        sha256sum linux.kernel.rvvm.debug.apk > linux.kernel.rvvm.debug.apk.sha256
+        mv linux.kernel.rvvm/app/build/outputs/apk/release/app-release.apk linux.kernel.rvvm.release.apk
+        sha256sum linux.kernel.rvvm.release.apk > linux.kernel.rvvm.release.apk.sha256
+
+    - name: Download apk [buildroot]
+      if: ${{ env.REBUILD_KERNEL_FLAG == '' && env.REBUILD_BUILDROOT_FLAG == '' && env.REBUILD_RVVM_FLAG == '' && env.REBUILD_EPOXY_FLAG == '' && env.REBUILD_VIRGL_FLAG == '' && env.REBUILD_LIBMEDIA_FLAG == '' }}
+      run: |
+        wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-libmedia/linux.kernel.rvvm.debug.apk
+        wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-libmedia/linux.kernel.rvvm.debug.apk.sha256
+        wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-libmedia/linux.kernel.rvvm.release.apk
+        wget --no-verbose https://github.com/ZLangJIT/riscv-kernel/releases/download/patches-libmedia/linux.kernel.rvvm.release.apk.sha256
+
+    - name: Release epoxy [epoxy]
+      if: ${{ env.REBUILD_EPOXY_FLAG != '' }}
+      uses: softprops/action-gh-release@master
+      with:
+        name:  patches-epoxy
+        tag_name:  patches-epoxy
+        draft: ${{ github.event_name == 'pull_request' }}
+        body: |
+          epoxy
+        files: |
+          epoxy.patch
+          epoxy.patch.latest.minor
+          epoxy.patch.latest.major
+          epoxy.patch.latest.version_code
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # generate_release_notes: true
+        fail_on_unmatched_files: true
+
+    - name: Release virgl [virglrenderer]
+      if: ${{ env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' }}
+      uses: softprops/action-gh-release@master
+      with:
+        name:  patches-virglrenderer
+        tag_name:  patches-virglrenderer
+        draft: ${{ github.event_name == 'pull_request' }}
+        body: |
+          virgl
+        files: |
+          virglrenderer.patch
+          virglrenderer.patch.latest.minor
+          virglrenderer.patch.latest.major
+          virglrenderer.patch.latest.version_code
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # generate_release_notes: true
+        fail_on_unmatched_files: true
+
+    - name: Release rvvm [rvvm]
+      if: ${{ env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_RVVM_FLAG != '' }}
+      uses: softprops/action-gh-release@master
+      with:
+        name:  patches-rvvm
+        tag_name:  patches-rvvm
+        draft: ${{ github.event_name == 'pull_request' }}
+        body: |
+          rvvm
+        files: |
+          rvvm.patch
+          rvvm.patch.latest.minor
+          rvvm.patch.latest.major
+          rvvm.patch.latest.version_code
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # generate_release_notes: true
+        fail_on_unmatched_files: true
+
+    - name: Release libmedia [linux.kernel.rvvm]
+      if: ${{ env.REBUILD_KERNEL_FLAG != '' || env.REBUILD_BUILDROOT_FLAG != '' || env.REBUILD_RVVM_FLAG != '' || env.REBUILD_EPOXY_FLAG != '' || env.REBUILD_VIRGL_FLAG != '' || env.REBUILD_LIBMEDIA_FLAG != '' }}
+      uses: softprops/action-gh-release@master
+      with:
+        name:  patches-libmedia
+        tag_name:  patches-libmedia
+        draft: ${{ github.event_name == 'pull_request' }}
+        body: |
+          libmedia
+        files: |
+          libmedia.patch
+          libmedia.patch.latest.minor
+          libmedia.patch.latest.major
+          libmedia.patch.latest.version_code
+          linux.kernel.rvvm.debug.apk
+          linux.kernel.rvvm.debug.apk.sha256
+          linux.kernel.rvvm.release.apk
+          linux.kernel.rvvm.release.apk.sha256
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # generate_release_notes: true
+        fail_on_unmatched_files: true
+
+    - name: Fetch commit sha
+      id: fetch_commit_sha
+      run: |
+        if [ ${{ github.event_name }} = 'pull_request' ]; then
+          echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          echo "RELEASE_TAG=${LIBMEDIA_GRADLE_VERSION_CODE}-PR" | tee -a $GITHUB_ENV
+        else
+          echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "RELEASE_TAG=$LIBMEDIA_GRADLE_VERSION_CODE" | tee -a $GITHUB_ENV
+        fi
+
+    - name: Release
+      uses: softprops/action-gh-release@master
+      with:
+        name:  ${{ env.RELEASE_TAG }}
+        tag_name:  ${{ env.RELEASE_TAG }}
+        draft: ${{ github.event_name == 'pull_request' }}
+        target_commitish: ${{ steps.fetch_commit_sha.outputs.sha }}
+        body: |
+          RISC-V linux kernel
+
+          * `vmlinux` for riscv ( built-in busybox ramdisk )
+          * `Image` for riscv ( built-in busybox ramdisk )
+          * `Image.gz` for riscv ( built-in busybox ramdisk )
+          * aarch64 apk files (debug+release)
+        files: |
+          linux.kernel.rvvm.debug.apk
+          linux.kernel.rvvm.debug.apk.sha256
+          linux.kernel.rvvm.release.apk
+          linux.kernel.rvvm.release.apk.sha256
+          build_dir/rootfs.cpio
+          build_dir/rootfs.cpio.sha256
+          build_dir/Image
+          build_dir/Image.sha256
+          build_dir/Image.gz
+          build_dir/Image.gz.sha256
+          build_dir/vmlinux
+          build_dir/vmlinux.sha256
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # generate_release_notes: true
+        fail_on_unmatched_files: true

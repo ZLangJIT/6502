@@ -1,0 +1,12 @@
+6502_functional_test 8 0.226362
+65c02_functional_test 8 0.255448
+w65c02_functional_test 8 0.25113
+r65c02_functional_test 8 0.250999
+6502_decimal_test 8 0.137537
+65c02_decimal_test 8 0.172101
+w65c02_decimal_test 8 0.173938
+r65c02_decimal_test 8 0.00149342
+65c02_extended_test 8 0.188009
+w65c02_extended_test 8 0.172232
+r65c02_extended_test 8 0.182053
+---

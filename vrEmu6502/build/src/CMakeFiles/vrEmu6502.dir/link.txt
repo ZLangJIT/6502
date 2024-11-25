@@ -1,0 +1,2 @@
+/nix/store/ay527x633kv7j8ani3rrv6mhgbkddpl8-gcc-wrapper-13.2.0/bin/ar qc libvrEmu6502.a CMakeFiles/vrEmu6502.dir/vrEmu6502.c.o
+/nix/store/ay527x633kv7j8ani3rrv6mhgbkddpl8-gcc-wrapper-13.2.0/bin/ranlib libvrEmu6502.a

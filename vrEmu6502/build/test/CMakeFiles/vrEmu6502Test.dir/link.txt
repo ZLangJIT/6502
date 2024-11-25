@@ -1,0 +1,1 @@
+/nix/store/ay527x633kv7j8ani3rrv6mhgbkddpl8-gcc-wrapper-13.2.0/bin/gcc -O3 -DNDEBUG CMakeFiles/vrEmu6502Test.dir/vrEmu6502Test.c.o -o ../bin/vrEmu6502Test  ../src/libvrEmu6502.a
