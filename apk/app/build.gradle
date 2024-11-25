@@ -3,9 +3,11 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 29
     defaultConfig {
+        versionCode GRADLE_VERSION_CODE
+        versionName "GRADLE_VERSION_STRING"
         applicationId 'com.android.gl2jni'
-        minSdkVersion 14
-        targetSdkVersion 29
+        minSdkVersion 28 // Android P (api 28)
+        targetSdkVersion 31 // Android S (api 31)
         externalNativeBuild {
             cmake {
                 // Available argumetns are inside ${SDK}/cmake/.../android.toolchain.cmake file
@@ -15,23 +17,32 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            storeFile file('keystore')
+            storePassword '123456'
+            keyAlias 'keystore'
+            keyPassword '123456'
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'),
                           'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     externalNativeBuild {
         cmake {
             path 'src/main/CMakeLists.txt'
+            version = "3.18.1"
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_6
-        targetCompatibility JavaVersion.VERSION_1_6
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
-    //buildToolsVersion '28.0.3'
-    //ndkVersion '22.1.7171670'
 }
 
