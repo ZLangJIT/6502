@@ -128,7 +128,7 @@ jobs:
       - name: Build gradle project
         run: |
           cd apk
-          if ./gradlew --no-deamon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel build
+          if ./gradlew --no-daemon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel build
               then
                   echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
               else
