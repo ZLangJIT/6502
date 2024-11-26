@@ -23,7 +23,7 @@
 
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="opengltutorial" />
+                android:value="emu_main_jni" />
         </activity>
     </application>
 
