@@ -72,12 +72,29 @@ jobs:
       - name: Change wrapper permissions
         run: chmod +x ./apk/gradlew
 
-      # Run Build Project
+      - name: Fetch commit sha
+        id: fetch_commit_sha
+        run: |
+          if [ -e version ]; then
+            printf "$(( $(cat version) + 1 ))" > version
+          else
+            printf "1" > version
+          fi
+          if [ ${{ github.event_name }} = 'pull_request' ]; then
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+            echo "RELEASE_TAG=$(cat version) - PR" | tee -a $GITHUB_ENV
+            echo "VERSION_TAG=version-PR" | tee -a $GITHUB_ENV
+          else
+            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "RELEASE_TAG=$(cat version)" | tee -a $GITHUB_ENV
+            echo "VERSION_TAG=version" | tee -a $GITHUB_ENV
+          fi
+
       - name: Build gradle project
         run: |
           cd apk
-          printf '%s\n' ",s/GRADLE_VERSION_CODE/1/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
-          printf '%s\n' ",s/GRADLE_VERSION_STRING/1/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          printf '%s\n' ",s/GRADLE_VERSION_CODE/$(cat version)/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          printf '%s\n' ",s@GRADLE_VERSION_STRING@${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ env.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
 
           # info shows cmake output but also tons of Transforming Artifact output
           if ./gradlew build --info
@@ -111,38 +128,47 @@ jobs:
       - name: Move apk
         run: |
           ls -alh apk/app/build/outputs/*/*
-          mv apk/app/build/outputs/apk/debug/app-debug.apk 6502-debug.apk
-          mv apk/app/build/outputs/apk/release/app-release.apk 6502-release.apk
+          mv apk/app/build/outputs/apk/debug/github-action-automated[1]-debug.apk 6502-debug.apk
+          mv apk/app/build/outputs/apk/release/github-action-automated[1]-release.apk 6502-release.apk
+          mv apk/app/build/outputs/bundle/release/github-action-automated[1]-release.aab 6502-release-bundle.aab
           sha256sum 6502-debug.apk > 6502-debug.apk.sha256
           sha256sum 6502-release.apk > 6502-release.apk.sha256
-
-      - name: Fetch commit sha
-        id: fetch_commit_sha
-        run: |
-          if [ ${{ github.event_name }} = 'pull_request' ]; then
-            echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-            echo "RELEASE_TAG=1-PR" | tee -a $GITHUB_ENV
-          else
-            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "RELEASE_TAG=1" | tee -a $GITHUB_ENV
-          fi
+          sha256sum 6502-release-bundle.aab > 6502-release-bundle.aab.sha256
 
       - name: Release
         uses: softprops/action-gh-release@master
         with:
-          name:  ${{ env.RELEASE_TAG }}
-          tag_name:  ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
+          tag_name: ${{ env.RELEASE_TAG }}
           draft: ${{ github.event_name == 'pull_request' }}
           target_commitish: ${{ steps.fetch_commit_sha.outputs.sha }}
           body: |
             apk
 
             * aarch64 apk files (debug+release)
+	    * aarch64 aab files (bundle)
           files: |
             6502-debug.apk
             6502-debug.apk.sha256
             6502-release.apk
             6502-release.apk.sha256
+            6502-release-bundle.aab
+            6502-release-bundle.aab.sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: Release
+        uses: softprops/action-gh-release@master
+        with:
+          name:  ${{ env.VERSION_TAG }}
+          tag_name:  ${{ env.VERSION_TAG }}
+          draft: ${{ github.event_name == 'pull_request' }}
+          target_commitish: ${{ steps.fetch_commit_sha.outputs.sha }}
+          body: |
+		version
+          files: |
+		version
           token: ${{ secrets.GITHUB_TOKEN }}
           # generate_release_notes: true
           fail_on_unmatched_files: true
