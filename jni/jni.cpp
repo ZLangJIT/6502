@@ -639,7 +639,7 @@ static int renderer_redraw(uint8_t flip) {
     int err = EGL_SUCCESS;
 
     if (!sfc || eglGetCurrentContext() == EGL_NO_CONTEXT)
-        return FALSE;
+        return false;
 
     draw(display.id,  -1.f, -1.f, 1.f, 1.f, flip);
     draw_cursor();
@@ -651,12 +651,12 @@ static int renderer_redraw(uint8_t flip) {
                 "Native window disconnected/abandoned, probably activity is destroyed or in background",
                 eglErrorLabel(err));
             renderer_set_window(nullptr, nullptr);
-            return FALSE;
+            return false;
         }
     }
 
     renderedFrames++;
-    return TRUE;
+    return true;
 }
 
 void renderer_print_fps(float millis) {
@@ -717,7 +717,7 @@ struct {
 //             FatalError("Failed to lock root window pixmap (error %d)", status);
 
 //         pvfb->root.buffer = new;
-//         pvfb->root.locked = TRUE;
+//         pvfb->root.locked = true;
 
 //         pScreenPtr->ModifyPixmapHeader(pScreenPtr->devPrivate, d0.width, d0.height, 32, 32, d0.stride * 4, data0);
 
@@ -761,21 +761,21 @@ static inline void renderer_unlock() {
     if (root.locked)
         AHardwareBuffer_unlock(root.buffer, NULL);
 
-    root.locked = FALSE;
+    root.locked = false;
     //pixmap->drawable.pScreen->ModifyPixmapHeader(pixmap, -1, -1, -1, -1, -1, NULL);
 }
 
-static inline Bool renderer_lock() {
+static inline bool renderer_lock() {
     AHardwareBuffer_Desc desc = {};
     void *data;
     int status;
 
     if (root.legacyDrawing)
-        return TRUE;
+        return true;
 
     if (!root.buffer) {
-        root.locked = FALSE;
-        return FALSE;
+        root.locked = false;
+        return false;
     }
 
     AHardwareBuffer_describe(root.buffer, &desc);
