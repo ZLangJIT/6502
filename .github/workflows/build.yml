@@ -76,8 +76,8 @@ jobs:
       - name: Build gradle project
         run: |
           cd apk
-          printf '%s\n' ",s/GRADLE_VERSION_CODE/1/g" w q | ed app/build.gradle
-          printf '%s\n' ",s/GRADLE_VERSION_STRING/1/g" w q | ed app/build.gradle
+          printf '%s\n' ",s/GRADLE_VERSION_CODE/1/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          printf '%s\n' ",s/GRADLE_VERSION_STRING/1/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
 
           # info shows cmake output but also tons of Transforming Artifact output
           if ./gradlew build --info

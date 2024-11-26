@@ -19,7 +19,7 @@ object ProjectSetting {
     const val NAME_APP = "Github Action Automated"
 
     const val APP_DOMAIN = "com"
-    const val APP_PLAY_CONSOLE = "frogobox"
+    const val APP_PLAY_CONSOLE = "smallville7123"
     const val APP_NAME = "githubaction"
 
     const val VERSION_MAJOR = 2
@@ -30,10 +30,10 @@ object ProjectSetting {
     const val PROJECT_COMPILE_SDK = 35
 
     // Setup Publish Setting
-    const val KEY_PATH = "frogoboxdev.jks"
-    const val KEY_STORE_PASSWORD = "cronoclez"
-    const val KEY_ALIAS = "frogobox"
-    const val KEY_ALIAS_PASSWORD = "xeonranger"
+    const val KEY_PATH = "keystore"
+    const val KEY_STORE_PASSWORD = "123456"
+    const val KEY_ALIAS = "keystore"
+    const val KEY_ALIAS_PASSWORD = "123456"
 
     // ---------------------------------------------------------------------------------------------
 
@@ -43,8 +43,8 @@ object ProjectSetting {
 
     const val PROJECT_APP_ID = "$APP_DOMAIN.$APP_PLAY_CONSOLE.$APP_NAME"
     const val PROJECT_NAME_SPACE = "com.frogobox.githubaction"
-    const val PROJECT_VERSION_CODE = (VERSION_MAJOR * 100) + (VERSION_MINOR * 10) + (VERSION_PATCH * 1)
-    const val PROJECT_VERSION_NAME = "$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH"
+    const val PROJECT_VERSION_CODE = GRADLE_VERSION_CODE
+    const val PROJECT_VERSION_NAME = "GRADLE_VERSION_STRING"
 
     // Declaration apk / aab name
     val NAME_APK = NAME_APP.lowercase().replace(" ", "-")
