@@ -35,6 +35,6 @@ target_link_libraries(emu_main_jni
 
 add_executable(emu_main_jni_client jni_client.cpp)
 install(
-  targets emu_main_jni_client
+  TARGETS emu_main_jni_client
   DESTINATION ${CMAKE_CURRENT_SOURCE_DIRECTORY}/../apk/app/src/main/assets
 )
