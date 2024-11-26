@@ -11,24 +11,29 @@ class MainActivity : GameActivity() {
     companion object {
         init {
             System.loadLibrary("emu_main_jni")
-            Log.i("Assets", "copying assets folder")
-            AssetsManager().copyAssetFolder(assets, filesDir.absolutePath)
-            val serviceClass = MyService::class.java
-            val serviceIntent = Intent(applicationContext, serviceClass)
-    
-            // If the service is not running then start it
-            if (!isServiceRunning(serviceClass)) {
-                // Start the service
-                startService(serviceIntent)
-                bindService(serviceIntent, myConnection, Context.BIND_AUTO_CREATE)
-            } else {
-                toast("Service already running.")
-                bindService(serviceIntent, myConnection, Context.BIND_AUTO_CREATE)
-            }
+        }
+    }
+ 
+    public override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.i("Assets", "copying assets folder")
+        AssetsManager().copyAssetFolder(assets, filesDir.absolutePath)
+
+        val serviceClass = MyService::class.java
+        val serviceIntent = Intent(applicationContext, serviceClass)
+        
+        // If the service is not running then start it
+        if (!isServiceRunning(serviceClass)) {
+            // Start the service
+            startService(serviceIntent)
+            bindService(serviceIntent, myConnection, Context.BIND_AUTO_CREATE)
+        } else {
+            toast("Service already running.")
+            bindService(serviceIntent, myConnection, Context.BIND_AUTO_CREATE)
         }
     }
 
-      // Custom method to determine whether a service is running
+    // Custom method to determine whether a service is running
     private fun isServiceRunning(serviceClass: Class<*>): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
