@@ -37,27 +37,26 @@ jobs:
           if [ ${{ github.event_name }} = 'pull_request' ]; then
             if wget --no-verbose https://github.com/ZLangJIT/6502/releases/download/version-PR/version
               then
-                echo "HAVE_VERSION=1" | tee -a $GITHUB_ENV
+                printf "$(( $(cat version) + 1 ))" > version
+                echo "HAVE_VERSION=$((cat version))" | tee -a $GITHUB_ENV
               else
-                echo "HAVE_VERSION=" | tee -a $GITHUB_ENV
+                printf "1" > version
+                echo "HAVE_VERSION=$((cat version))" | tee -a $GITHUB_ENV
             fi
           else
             if wget --no-verbose https://github.com/ZLangJIT/6502/releases/download/version/version
               then
                 echo "HAVE_VERSION=1" | tee -a $GITHUB_ENV
+                printf "$(( $(cat version) + 1 ))" > version
               else
-                echo "HAVE_VERSION=" | tee -a $GITHUB_ENV
+                echo "HAVE_VERSION=1" | tee -a $GITHUB_ENV
+                printf "1" > version
             fi
           fi
 
       - name: Fetch commit sha
         id: fetch_commit_sha
         run: |
-          if [ -e version ]; then
-            printf "$(( $(cat version) + 1 ))" > version
-          else
-            printf "1" > version
-          fi
           if [ ${{ github.event_name }} = 'pull_request' ]; then
             echo "sha=${{ github.event.pull_request.head.sha }}" | tee -a $GITHUB_OUTPUT
             echo "RELEASE_TAG=$(cat version) - PR" | tee -a $GITHUB_ENV
