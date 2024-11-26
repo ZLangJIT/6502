@@ -1,3 +1,6 @@
+#include <RBRenderer.hpp>
+#include <RBLog.hpp>
+
 #include <jni.h>
 #include <game-activity/GameActivity.cpp>
 #include <game-text-input/gametextinput.cpp>

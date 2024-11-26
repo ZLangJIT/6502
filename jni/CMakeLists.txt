@@ -18,6 +18,8 @@ add_library(emu_main_jni SHARED
         base/RBLog.cpp
 )
 
+target_include_directories(emu_main_jni PRIVATE game base)
+
 find_library(log-lib log)
 
 find_package(game-activity REQUIRED CONFIG)
