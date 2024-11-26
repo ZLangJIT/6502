@@ -185,9 +185,9 @@ jobs:
           draft: ${{ github.event_name == 'pull_request' }}
           target_commitish: ${{ steps.fetch_commit_sha.outputs.sha }}
           body: |
-		version
+            version
           files: |
-		version
+            version
           token: ${{ secrets.GITHUB_TOKEN }}
           # generate_release_notes: true
           fail_on_unmatched_files: true
