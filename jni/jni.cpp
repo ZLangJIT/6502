@@ -12,7 +12,7 @@ extern "C" {
     void handle_cmd(android_app *pApp, int32_t cmd) {
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
-            pApp->userData = nullptr; new RBRenderer(pApp);
+            pApp->userData = new RBRenderer(pApp);
             break;
         case APP_CMD_TERM_WINDOW:
             if (pApp->userData) {
