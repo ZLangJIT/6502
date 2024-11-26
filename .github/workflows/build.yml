@@ -31,13 +31,6 @@ jobs:
       - name: Set repository name as env variable
         run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
 
-      - name: Set Up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '17'
-          cache: 'gradle'
-
       - name: Check version
         shell: bash
         run: |
@@ -56,6 +49,39 @@ jobs:
                 echo "HAVE_VERSION=" | tee -a $GITHUB_ENV
             fi
           fi
+
+      - name: Fetch commit sha
+        id: fetch_commit_sha
+        run: |
+          if [ -e version ]; then
+            printf "$(( $(cat version) + 1 ))" > version
+          else
+            printf "1" > version
+          fi
+          if [ ${{ github.event_name }} = 'pull_request' ]; then
+            echo "sha=${{ github.event.pull_request.head.sha }}" | tee -a $GITHUB_OUTPUT
+            echo "RELEASE_TAG=$(cat version) - PR" | tee -a $GITHUB_ENV
+            echo "VERSION_TAG=version-PR" | tee -a $GITHUB_ENV
+          else
+            echo "sha=${{ github.sha }}" | tee -a $GITHUB_OUTPUT
+            echo "RELEASE_TAG=$(cat version)" | tee -a $GITHUB_ENV
+            echo "VERSION_TAG=version" | tee -a $GITHUB_ENV
+          fi
+
+      - name: Update gradle project info
+        run: |
+          cd apk
+          printf '%s\n' ",s/GRADLE_VERSION_CODE/$(cat version)/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          printf '%s\n' ",s@GRADLE_VERSION_STRING@${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ env.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+
+          cat buildSrc/src/main/kotlin/ProjectSetting.kt
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu' # See 'Supported distributions' for available options
+          java-version: '17'
+          cache: 'gradle'
 
       - name: Check keystore
         shell: bash
@@ -90,32 +116,6 @@ jobs:
 
       - name: Change wrapper permissions
         run: chmod +x ./apk/gradlew
-
-      - name: Fetch commit sha
-        id: fetch_commit_sha
-        run: |
-          if [ -e version ]; then
-            printf "$(( $(cat version) + 1 ))" > version
-          else
-            printf "1" > version
-          fi
-          if [ ${{ github.event_name }} = 'pull_request' ]; then
-            echo "sha=${{ github.event.pull_request.head.sha }}" | tee -a $GITHUB_OUTPUT
-            echo "RELEASE_TAG=$(cat version) - PR" | tee -a $GITHUB_ENV
-            echo "VERSION_TAG=version-PR" | tee -a $GITHUB_ENV
-          else
-            echo "sha=${{ github.sha }}" | tee -a $GITHUB_OUTPUT
-            echo "RELEASE_TAG=$(cat version)" | tee -a $GITHUB_ENV
-            echo "VERSION_TAG=version" | tee -a $GITHUB_ENV
-          fi
-
-      - name: Update gradle project info
-        run: |
-          cd apk
-          printf '%s\n' ",s/GRADLE_VERSION_CODE/$(cat version)/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
-          printf '%s\n' ",s@GRADLE_VERSION_STRING@${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ env.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
-
-          cat buildSrc/src/main/kotlin/ProjectSetting.kt
 
       - name: Build gradle project
         run: |
