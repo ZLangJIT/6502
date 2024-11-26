@@ -165,7 +165,7 @@ jobs:
             apk
 
             * aarch64 apk files (debug+release)
-	    * aarch64 aab files (bundle)
+            * aarch64 aab files (bundle)
           files: |
             6502-debug.apk
             6502-debug.apk.sha256
