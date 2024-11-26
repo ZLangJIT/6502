@@ -6,7 +6,8 @@ project("emu_main_jni")
 
 add_library(emu_main_jni SHARED
 	jni.cpp
-        game/Cube3D.cpp
+        game/Pong.cpp
+        #game/Cube3D.cpp
         base/RBGame.cpp
         base/RBGameObject.cpp
         base/RBColor.cpp
