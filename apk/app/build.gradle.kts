@@ -59,6 +59,14 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        prefab = true
+    }
+    
+    externalNativeBuild {
+        cmake {
+            path = file("../../CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     compileOptions {

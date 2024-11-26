@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.18.8)
 
 
 set(CMAKE_C_STANDARD 11)
@@ -18,14 +18,8 @@ else()
   endif()
 endif()
 
-if (NOT BUILD_SHARED_LIBS)
- add_definitions(-DVR_EMU_6502_STATIC)
-endif()
-
 include(CTest)
 
 add_subdirectory(src)
 
-if (NOT EXISTS ${PICO_SDK_PATH})
-  add_subdirectory(test)
-endif()
+add_subdirectory(test)
