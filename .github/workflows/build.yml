@@ -38,21 +38,18 @@ jobs:
             if wget --no-verbose https://github.com/ZLangJIT/6502/releases/download/version-PR/version
               then
                 printf "$(( $(cat version) + 1 ))" > version
-                echo "HAVE_VERSION=$((cat version))" | tee -a $GITHUB_ENV
               else
                 printf "1" > version
-                echo "HAVE_VERSION=$((cat version))" | tee -a $GITHUB_ENV
             fi
           else
             if wget --no-verbose https://github.com/ZLangJIT/6502/releases/download/version/version
               then
-                echo "HAVE_VERSION=1" | tee -a $GITHUB_ENV
                 printf "$(( $(cat version) + 1 ))" > version
               else
-                echo "HAVE_VERSION=1" | tee -a $GITHUB_ENV
                 printf "1" > version
             fi
           fi
+          echo "HAVE_VERSION=$((cat version))" | tee -a $GITHUB_ENV
 
       - name: Fetch commit sha
         id: fetch_commit_sha
@@ -70,8 +67,12 @@ jobs:
       - name: Update gradle project info
         run: |
           cd apk
-          printf '%s\n' ",s/GRADLE_VERSION_CODE/$(cat version)/g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
-          printf '%s\n' ",s@GRADLE_VERSION_STRING@${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ env.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          printf '%s\n' ",s@GRADLE_VERSION_CODE@${{ env.HAVE_VERSION }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          if [ ${{ github.event_name }} = 'pull_request' ]; then
+            printf '%s\n' ",s@GRADLE_VERSION_STRING@version ${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ github.event.pull_request.head.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          else
+            printf '%s\n' ",s@GRADLE_VERSION_STRING@version ${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ github.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          fi
 
           cat buildSrc/src/main/kotlin/ProjectSetting.kt
 
