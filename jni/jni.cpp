@@ -811,6 +811,7 @@ bool motion_event_filter_func(const GameActivityMotionEvent *motionEvent) {
             break;
         case APP_CMD_TERM_WINDOW:
             if (pApp->userData == ((void*)0x1)) {
+                renderer_set_window(nullptr, nullptr);
                 pApp->userData = 0x0;
             }
             break;
