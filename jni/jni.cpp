@@ -854,13 +854,16 @@ void android_main(struct android_app *pApp) {
         }
 
         if (pApp->userData == ((void*)0x1)) {
-          // pApp->window
-          // handle input
-          // render frame
+          // AHardwareBuffer_sendHandleToUnixSocket
+          // AHardwareBuffer_recvHandleFromUnixSocket
           if (renderer_should_redraw()) {
+            log("should draw");
             renderer_unlock();
             int redrawn = renderer_redraw(root.flip);
+            log("redraw returns %d", redrawn);
             renderer_lock();
+          } else {
+            log("should not draw");
           }
         }
     } while (!pApp->destroyRequested);
