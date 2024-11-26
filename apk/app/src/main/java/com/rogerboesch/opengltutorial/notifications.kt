@@ -37,12 +37,14 @@ class getBackgroundNotification(private val context: Context, private var myServ
 
 
         val pendingIntent = PendingIntent.getActivity(context, 0, notifyIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+        
+        val icon = R.drawable.ic_launcher_foreground
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             mNotification = Notification.Builder(context, CHANNEL_ID)
                     // Set the intent that will fire when the user taps the notification
                     .setContentIntent(pendingIntent)
-                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setSmallIcon(icon)
                     .setAutoCancel(true)
                     .setContentTitle(title)
                     .setStyle(Notification.BigTextStyle().bigText(message))
@@ -52,7 +54,7 @@ class getBackgroundNotification(private val context: Context, private var myServ
             mNotification = Notification.Builder(context)
                     // Set the intent that will fire when the user taps the notification
                     .setContentIntent(pendingIntent)
-                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setSmallIcon(icon)
                     .setAutoCancel(true)
                     .setPriority(Notification.PRIORITY_MAX)
                     .setContentTitle(title)
