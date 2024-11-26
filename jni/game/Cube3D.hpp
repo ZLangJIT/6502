@@ -21,7 +21,7 @@
 class Cube3D : public RBGame {
 public:
     void CreateContent() override;
-    virtual bool Is3D() { return true; };
+    inline virtual bool Is3D() override { return true; };
 
 protected:
     void OnUpdate(float delta) override;

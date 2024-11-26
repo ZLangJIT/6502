@@ -29,7 +29,7 @@ private:
 
 public:
     virtual void CreateContent();
-    virtual bool Is3D() { return false; };
+    inline virtual bool Is3D() override { return false; };
 
 protected:
     void OnUpdate(float delta) override;
