@@ -28,7 +28,7 @@ private:
     int m_score2;
 
 public:
-    virtual void CreateContent();
+    virtual void CreateContent() override;
     inline virtual bool Is3D() override { return false; };
 
 protected:
