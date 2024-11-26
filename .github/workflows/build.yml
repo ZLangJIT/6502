@@ -70,14 +70,14 @@ jobs:
       - name: Update gradle project info
         run: |
           cd apk
-          printf '%s\n' ",s@GRADLE_VERSION_CODE@${{ env.HAVE_VERSION }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+          printf '%s\n' ",s@GRADLE_VERSION_CODE@${{ env.HAVE_VERSION }}@g" w q | ed app/build.gradle.kts
           if [ ${{ github.event_name }} = 'pull_request' ]; then
-            printf '%s\n' ",s@GRADLE_VERSION_STRING@version ${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ github.event.pull_request.head.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+            printf '%s\n' ",s@GRADLE_VERSION_STRING@version ${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ github.event.pull_request.head.sha }}@g" w q | ed app/build.gradle.kts
           else
-            printf '%s\n' ",s@GRADLE_VERSION_STRING@version ${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ github.sha }}@g" w q | ed buildSrc/src/main/kotlin/ProjectSetting.kt
+            printf '%s\n' ",s@GRADLE_VERSION_STRING@version ${{ env.RELEASE_TAG }} - https://github.com/ZLangJIT/6502/commits/${{ github.sha }}@g" w q | ed app/build.gradle.kts
           fi
 
-          cat buildSrc/src/main/kotlin/ProjectSetting.kt
+          cat app/build.gradle.kts
 
       - name: Set Up JDK
         uses: actions/setup-java@v4
