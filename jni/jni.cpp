@@ -781,10 +781,11 @@ static inline bool renderer_lock() {
     AHardwareBuffer_describe(root.buffer, &desc);
     status = AHardwareBuffer_lock(root.buffer, USAGE, -1, NULL, &data);
     root.locked = status == 0;
-    if (root.locked)
+    if (root.locked) {
         //pixmap->drawable.pScreen->ModifyPixmapHeader(pixmap, desc.width, desc.height, -1, -1, desc.stride * 4, data);
-    else
+    } else {
         FatalError("Failed to lock surface: %d\n", status);
+    }
 
     return root.locked;
 }
@@ -802,14 +803,14 @@ bool motion_event_filter_func(const GameActivityMotionEvent *motionEvent) {
     void handle_cmd(android_app *pApp, int32_t cmd) {
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
-            pApp->userData = 0x1;
+            pApp->userData = ((void*)0x1);
             int ret = renderer_init(&root.legacyDrawing, &root.flip);
             log("renderer_init returned %d", ret);
             renderer_set_window(pApp->window, root.buffer);
             //updateBuffer();
             break;
         case APP_CMD_TERM_WINDOW:
-            if (pApp->userData == 0x1) {
+            if (pApp->userData == ((void*)0x1)) {
                 pApp->userData = 0x0;
             }
             break;
@@ -850,7 +851,7 @@ void android_main(struct android_app *pApp) {
             }
         }
 
-        if (pApp->userData == 0x1) {
+        if (pApp->userData == ((void*)0x1)) {
           // pApp->window
           // handle input
           // render frame
