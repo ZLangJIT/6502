@@ -49,7 +49,7 @@ jobs:
                 printf "1" > version
             fi
           fi
-          echo "HAVE_VERSION=$((cat version))" | tee -a $GITHUB_ENV
+          echo "HAVE_VERSION=$(cat version)" | tee -a $GITHUB_ENV
 
       - name: Fetch commit sha
         id: fetch_commit_sha
