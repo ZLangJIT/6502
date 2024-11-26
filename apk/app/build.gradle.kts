@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.rogerboesch.opengltutorial"
-        minSdk = 34
+        minSdk = 28 # Android Pie
         targetSdk = 34
         versionCode = GRADLE_VERSION_CODE
         versionName = "GRADLE_VERSION_STRING"
