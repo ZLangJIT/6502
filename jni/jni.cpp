@@ -801,10 +801,11 @@ bool motion_event_filter_func(const GameActivityMotionEvent *motionEvent) {
 #include <game-activity/native_app_glue/android_native_app_glue.c>
 
     void handle_cmd(android_app *pApp, int32_t cmd) {
+      int ret = 0;
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
             pApp->userData = ((void*)0x1);
-            int ret = renderer_init(&root.legacyDrawing, &root.flip);
+            ret = renderer_init(&root.legacyDrawing, &root.flip);
             log("renderer_init returned %d", ret);
             renderer_set_window(pApp->window, root.buffer);
             //updateBuffer();
