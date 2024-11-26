@@ -199,7 +199,9 @@ static struct {
 GLuint g_texture_program = 0, gv_pos = 0, gv_coords = 0;
 GLuint g_texture_program_bgra = 0, gv_pos_bgra = 0, gv_coords_bgra = 0;
 
-static int renderer_init(int* legacy_drawing, uint8_t* flip) {
+#define USAGE (AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN)
+
+static int renderer_init(bool* legacy_drawing, uint8_t* flip) {
     EGLint major, minor;
     EGLint numConfigs;
     const EGLint configAttribs[] = {
@@ -274,7 +276,7 @@ static int renderer_init(int* legacy_drawing, uint8_t* flip) {
                 .height = 64,
                 .layers = 1,
                 .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM,
-                .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN
+                .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | USAGE
         };
 
         status = AHardwareBuffer_allocate(&d0, &new_);
@@ -286,7 +288,7 @@ static int renderer_init(int* legacy_drawing, uint8_t* flip) {
         }
 
         uint32_t *pixels;
-        if (AHardwareBuffer_lock(new_, AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN, -1, nullptr, (void **) &pixels) == 0) {
+        if (AHardwareBuffer_lock(new_, USAGE, -1, nullptr, (void **) &pixels) == 0) {
             pixels[0] = 0xAABBCCDD;
             AHardwareBuffer_unlock(new_, nullptr);
         } else {
@@ -666,8 +668,6 @@ void renderer_print_fps(float millis) {
     renderedFrames = 0;
 }
 
-#define USAGE (AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN)
-
 struct {
     AHardwareBuffer* buffer;
     bool locked;
@@ -784,7 +784,7 @@ static inline bool renderer_lock() {
     if (root.locked) {
         //pixmap->drawable.pScreen->ModifyPixmapHeader(pixmap, desc.width, desc.height, -1, -1, desc.stride * 4, data);
     } else {
-        FatalError("Failed to lock surface: %d\n", status);
+        loge("Failed to lock surface: %d", status);
     }
 
     return root.locked;
