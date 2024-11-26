@@ -128,7 +128,7 @@ jobs:
       - name: Build gradle project
         run: |
           cd apk
-          if ./gradlew --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel build
+          if ./gradlew --no-deamon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel build
               then
                   echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
               else
@@ -144,13 +144,13 @@ jobs:
           false
 
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel assembleDebug
+        run: cd apk ; ./gradlew assembleDebug
 
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel assemble
+        run: cd apk ; ./gradlew assemble
 
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel ${{ env.main_project_module }}:bundleRelease
+        run: cd apk ; ./gradlew ${{ env.main_project_module }}:bundleRelease
 
       - name: Move apk
         run: |
