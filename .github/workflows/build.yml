@@ -17,6 +17,9 @@ on:
   #schedule:
   #  - cron: '0 0 * * *' # https://crontab.guru
 
+permissions:
+  content: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -137,16 +140,12 @@ jobs:
           tail -n 600 apk/app/.cxx/cmake/debug/arm64-v8a/cmake_server_log.txt
           false
 
-      # Create APK Debug
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
         run: cd apk ; ./gradlew assembleDebug
 
-      # Create APK Release
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
         run: cd apk ; ./gradlew assemble
 
-      # Create Bundle AAB Release
-      # Noted for main module build [main_project_module]:bundleRelease
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
         run: cd apk ; ./gradlew ${{ env.main_project_module }}:bundleRelease
 
