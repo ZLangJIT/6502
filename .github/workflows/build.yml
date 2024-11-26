@@ -19,9 +19,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -40,16 +38,62 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: Check keystore
+        shell: bash
+        run: |
+          cd apk/app
+          if wget --no-verbose https://github.com/ZLangJIT/6506/releases/download/keystore/keystore
+            then
+              echo "HAVE_KEYSTORE=1" | tee -a $GITHUB_ENV
+            else
+              echo "HAVE_KEYSTORE=" | tee -a $GITHUB_ENV
+          fi
+
+      - name: Create keystore
+        if: ${{ env.HAVE_KEYSTORE == '' }}
+        shell: bash
+        run: |
+          cd apk/app
+          printf "123456\n123456\nUnknown1\nUnknown2\nUnknown3\nUnknown4\nUnknown5\nUnknown6\nyes\n123456\n123456" | keytool -genkey -v -keystore keystore -alias keystore -keyalg RSA -keysize 2048 -validity 10000
+
+      - name: Release keystore
+        if: ${{ env.HAVE_KEYSTORE == '' }}
+        uses: softprops/action-gh-release@master
+        with:
+          name:  keystore
+          tag_name:  keystore
+          body: |
+            keystore
+          files: |
+            apk/app/keystore
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_unmatched_files: true
+
       - name: Change wrapper permissions
         run: chmod +x ./apk/gradlew
 
-      # Run Tests Build
-      - name: Run gradle tests
-        run: cd apk ; ./gradlew test
-
       # Run Build Project
       - name: Build gradle project
-        run: cd apk ; ./gradlew build
+        run: |
+          cd apk
+          printf '%s\n' ",s/GRADLE_VERSION_CODE/1/g" w q | ed app/build.gradle
+          printf '%s\n' ",s/GRADLE_VERSION_STRING/1/g" w q | ed app/build.gradle
+
+          # info shows cmake output but also tons of Transforming Artifact output
+          if ./gradlew build --info
+              then
+                  echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
+              else
+                  echo "GRADLE_RETURN_CODE=1" | tee -a $GITHUB_ENV
+          fi
+
+      - name: APK build failed - print last 600 lines from cmake [apk]
+        if: ${{ env.GRADLE_RETURN_CODE == '1' }}
+        shell: bash
+        run: |
+          echo "printing the last 600 lines from app/.../cmake_server_log.txt"
+          tail -n 600 apk/app/.cxx/cmake/debug/arm64-v8a/cmake_server_log.txt
+          false
 
       # Create APK Debug
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
@@ -64,275 +108,41 @@ jobs:
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
         run: cd apk ; ./gradlew ${{ env.main_project_module }}:bundleRelease
 
-permissions:
-  contents: write
+      - name: Move apk
+        run: |
+          ls -alh apk/app/build/outputs/*/*
+          mv apk/app/build/outputs/apk/debug/app-debug.apk 6052-debug.apk
+          sha256sum 6052-debug.apk > 6052-debug.apk.sha256
+          mv apk/app/build/outputs/apk/release/app-release.apk 6052-release.apk
+          sha256sum 6052-release.apk > 6052-release.apk.sha256
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    container: locietta/loia-dev-base:latest
-    environment: env
-
-    steps:
-
-    - uses: actions/checkout@main
-
-    - name: Trust this directory
-      run: git config --global --add safe.directory '*' # v2.35.3 or later
-
-    - name: Update pacman repository + keyring
-      run: |
-        pacman -Sy --noconfirm archlinux-keyring archlinuxcn-keyring
-        pacman -Su --noconfirm
-
-    - name: install important packages
-      run: |
-        pacman -S --noconfirm ccache zip unzip clang cmake
-
-        # ed allows in-place file editing
-        pacman -S --noconfirm meson ninja pkg-config ed
-
-    - name: Initialize ccache
-      uses: hendrikmuhs/ccache-action@v1.2
-      with:
-        max-size: 2048M
-        key: ${{ github.job }}-${{ matrix.arch }}
-
-    - name: Prepare source code
-      shell: bash
-      run: |
-        pacman -S --noconfirm rsync wget
-        useradd -m build
-        echo "build ALL=(ALL:ALL) ALL" >> /etc/sudoers
-        mkdir build_dir
-        chown build:build build_dir
-        chmod 777 build_dir
-
-    - name: Install android commandline-tools + JDK17 + JDK8
-      run: |
-        TOOLS_URL=$(wget -qO- http://developer.android.com/sdk/index.html | grep latest.zip | grep linux | grep href | grep -o https.*zip)
-        TOOLS_FILE=$(echo $TOOLS_URL | grep -o command.*zip)
-        cd / ; echo "downloading $TOOLS_FILE ..." ; wget --no-verbose $TOOLS_URL -O $TOOLS_FILE ; unzip $TOOLS_FILE ; bash -c "rm $TOOLS_FILE || true"
-        pacman -S --noconfirm jdk17-openjdk jdk8-openjdk
-        archlinux-java status
-        archlinux-java set java-17-openjdk
-
-    - name: Init env
-      run: |
-        FILE=~/.bashrc
-        echo "export ANDROID_HOME=/android-sdk" >> $FILE
-        echo "export ANDROID_SDK=/android-sdk" >> $FILE
-        echo "export ANDROID_SDK_ROOT=/android-sdk" >> $FILE
-        echo "export ANDROID_SDK_PATH=/android-sdk" >> $FILE
-        echo "export PATH=$PATH:/android-sdk/platform-tools" >> $FILE
-
-    - name: Test sdkmanager
-      shell: bash
-      run: |
-        . ~/.bashrc
-        export PATH=$PATH:/cmdline-tools/bin
-        echo $PATH
-        which sdkmanager
-        sdkmanager --help || true # sdkmanager exits with code 1
-
-    - name: List sdkmanager packages
-      #
-      # this can take up to 5 mins so we disable this
-      #
-      # can enable to "poke" the list
-      #
-      if: false
-      shell: bash
-      run: |
-        . ~/.bashrc
-        export PATH=$PATH:/cmdline-tools/bin
-        sdkmanager --list --sdk_root=/android-sdk || true
-
-    - name: Accept sdkmanager Licenses
-      shell: bash
-      run: |
-        . ~/.bashrc
-        export PATH=$PATH:/cmdline-tools/bin
-        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
-
-    - name: Verify sdkmanager Licenses
-      shell: bash
-      run: |
-        . ~/.bashrc
-        export PATH=$PATH:/cmdline-tools/bin
-        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
-
-    - name: Install sdkmanager cmdline-tools
-      shell: bash
-      run: |
-        . ~/.bashrc
-        export PATH=$PATH:/cmdline-tools/bin
-        yes | sdkmanager --install "cmdline-tools;latest" --sdk_root=/android-sdk || true
-        ls -l /android-sdk
-        ls -l /android-sdk/cmdline-tools
-        ls -l /android-sdk/cmdline-tools/latest
-        ls -l /android-sdk/cmdline-tools/latest/bin
-
-    - name: Switch to sdkmanager cmdline-tools
-      shell: bash
-      run: |
-        echo "export PATH=$PATH:/android-sdk/cmdline-tools/latest/bin" >> ~/.bashrc
-        rm -rf /cmdline-tools*
-
-
-    - name: Install sdkmanager support repository
-      shell: bash
-      run: |
-        . ~/.bashrc
-        yes | sdkmanager --install "extras;android;m2repository" --sdk_root=/android-sdk || true
-
-    - name: Accept sdkmanager Licenses
-      shell: bash
-      run: |
-        . ~/.bashrc
-        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
-
-    - name: Verify sdkmanager Licenses
-      shell: bash
-      run: |
-        . ~/.bashrc
-        yes | sdkmanager --licenses --sdk_root=/android-sdk || true
-
-    - name: List sdkmanager packages
-      shell: bash
-      run: |
-        . ~/.bashrc
-        sdkmanager --list --sdk_root=/android-sdk || true
-
-    - name: Install ndk 21
-      shell: bash
-      run: |
-        . ~/.bashrc
-        yes | sdkmanager --install "ndk;21.4.7075529" --sdk_root=/android-sdk || true
-
-    - name: Install cmake 3.18.1
-      shell: bash
-      run: |
-        . ~/.bashrc
-        yes | sdkmanager --install "cmake;3.18.1" --sdk_root=/android-sdk || true
-
-    - name: Grant execute permission for gradlew [apk]
-      run: |
-        chmod +x apk/gradlew
-
-    - name: Copy files
-      shell: bash
-      run: |
-        cd apk
-        #cp ../build_dir/Image.gz app/src/main/assets/Image.gz
-
-    - name: Check keystore
-      shell: bash
-      run: |
-        cd apk/app
-        if wget --no-verbose https://github.com/ZLangJIT/6506/releases/download/keystore/keystore
-          then
-            echo "HAVE_KEYSTORE=1" | tee -a $GITHUB_ENV
+      - name: Fetch commit sha
+        id: fetch_commit_sha
+        run: |
+          if [ ${{ github.event_name }} = 'pull_request' ]; then
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+            echo "RELEASE_TAG=${LIBMEDIA_GRADLE_VERSION_CODE}-PR" | tee -a $GITHUB_ENV
           else
-            echo "HAVE_KEYSTORE=" | tee -a $GITHUB_ENV
-        fi
+            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "RELEASE_TAG=$LIBMEDIA_GRADLE_VERSION_CODE" | tee -a $GITHUB_ENV
+          fi
 
-    - name: Create keystore
-      if: ${{ env.HAVE_KEYSTORE == '' }}
-      shell: bash
-      run: |
-        . ~/.bashrc
-        archlinux-java set java-8-openjdk
-        cd apk/app
-        printf "123456\n123456\nUnknown1\nUnknown2\nUnknown3\nUnknown4\nUnknown5\nUnknown6\nyes\n123456\n123456" | keytool -genkey -v -keystore keystore -alias keystore -keyalg RSA -keysize 2048 -validity 10000
+      - name: Release
+        uses: softprops/action-gh-release@master
+        with:
+          name:  ${{ env.RELEASE_TAG }}
+          tag_name:  ${{ env.RELEASE_TAG }}
+          draft: ${{ github.event_name == 'pull_request' }}
+          target_commitish: ${{ steps.fetch_commit_sha.outputs.sha }}
+          body: |
+            apk
 
-    - name: Release keystore
-      if: ${{ env.HAVE_KEYSTORE == '' }}
-      uses: softprops/action-gh-release@master
-      with:
-        name:  keystore
-        tag_name:  keystore
-        body: |
-          keystore
-        files: |
-          apk/app/keystore
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fail_on_unmatched_files: true
-
-    - name: Build with Gradle
-      shell: bash
-      run: |
-        . ~/.bashrc
-        archlinux-java set java-8-openjdk
-        cd apk
-        printf '%s\n' ",s/GRADLE_VERSION_CODE/1/g" w q | ed app/build.gradle
-        printf '%s\n' ",s/GRADLE_VERSION_STRING/1/g" w q | ed app/build.gradle
-
-        # info shows cmake output but also tons of Transforming Artifact output
-        if ./gradlew build --info
-            then
-                echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
-            else
-                echo "GRADLE_RETURN_CODE=1" | tee -a $GITHUB_ENV
-        fi
-
-    - name: APK build failed - print last 600 lines from cmake [apk]
-      if: ${{ env.GRADLE_RETURN_CODE == '1' }}
-      shell: bash
-      run: |
-        echo "printing the last 600 lines from app/.../cmake_server_log.txt"
-        tail -n 600 apk/app/.cxx/cmake/debug/arm64-v8a/cmake_server_log.txt
-        false
-
-    - name: Build debug APK [apk]
-      shell: bash
-      run: |
-        . ~/.bashrc
-        cd apk
-        ./gradlew assembleDebug --stacktrace
-
-    - name: Build release APK
-      shell: bash
-      run: |
-        . ~/.bashrc
-        cd apk
-        ./gradlew assembleRelease --stacktrace
-
-    - name: Move apk
-      run: |
-        ls -alh apk/app/build/outputs/apk/*
-        mv apk/app/build/outputs/apk/debug/app-debug.apk 6052-debug.apk
-        sha256sum 6052-debug.apk > 6052-debug.apk.sha256
-        mv apk/app/build/outputs/apk/release/app-release.apk 6052-release.apk
-        sha256sum 6052-release.apk > 6052-release.apk.sha256
-
-    - name: Fetch commit sha
-      id: fetch_commit_sha
-      run: |
-        if [ ${{ github.event_name }} = 'pull_request' ]; then
-          echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-          echo "RELEASE_TAG=${LIBMEDIA_GRADLE_VERSION_CODE}-PR" | tee -a $GITHUB_ENV
-        else
-          echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "RELEASE_TAG=$LIBMEDIA_GRADLE_VERSION_CODE" | tee -a $GITHUB_ENV
-        fi
-
-    - name: Release
-      uses: softprops/action-gh-release@master
-      with:
-        name:  ${{ env.RELEASE_TAG }}
-        tag_name:  ${{ env.RELEASE_TAG }}
-        draft: ${{ github.event_name == 'pull_request' }}
-        target_commitish: ${{ steps.fetch_commit_sha.outputs.sha }}
-        body: |
-          apk
-
-          * aarch64 apk files (debug+release)
-        files: |
-          6052-debug.apk
-          6052-debug.apk.sha256
-          6052-release.apk
-          6052-release.apk.sha256
-        token: ${{ secrets.GITHUB_TOKEN }}
-        # generate_release_notes: true
-        fail_on_unmatched_files: true
+            * aarch64 apk files (debug+release)
+          files: |
+            6052-debug.apk
+            6052-debug.apk.sha256
+            6052-release.apk
+            6052-release.apk.sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # generate_release_notes: true
+          fail_on_unmatched_files: true
