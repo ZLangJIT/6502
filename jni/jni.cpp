@@ -119,6 +119,64 @@ static const char vertex_shader[] =
 static const char fragment_shader[] = FRAGMENT_SHADER();
 static const char fragment_shader_bgra[] = FRAGMENT_SHADER(".bgra");
 
+static GLuint load_shader(GLenum shaderType, const char* pSource) {
+    GLint compiled = 0;
+    GLuint shader = glCreateShader(shaderType); checkGlError();
+    if (shader) {
+        glShaderSource(shader, 1, &pSource, nullptr); checkGlError();
+        glCompileShader(shader); checkGlError();
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled); checkGlError();
+        if (!compiled) {
+            GLint infoLen = 0;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen); checkGlError();
+            if (infoLen) {
+                char* buf = (char*) malloc(infoLen);
+                if (buf) {
+                    glGetShaderInfoLog(shader, infoLen, nullptr, buf); checkGlError();
+                    log("Xlorie: Could not compile shader %d:\n%s\n", shaderType, buf);
+                    free(buf);
+                }
+                glDeleteShader(shader); checkGlError();
+                shader = 0;
+            }
+        }
+    }
+    return shader;
+}
+
+static GLuint create_program(const char* p_vertex_source, const char* p_fragment_source) {
+    GLuint program, vertexShader, pixelShader;
+    GLint linkStatus = GL_FALSE;
+    vertexShader = load_shader(GL_VERTEX_SHADER, p_vertex_source);
+    pixelShader = load_shader(GL_FRAGMENT_SHADER, p_fragment_source);
+    if (!pixelShader || !vertexShader) {
+        return 0;
+    }
+
+    program = glCreateProgram(); checkGlError();
+    if (program) {
+        glAttachShader(program, vertexShader); checkGlError();
+        glAttachShader(program, pixelShader); checkGlError();
+        glLinkProgram(program); checkGlError();
+        glGetProgramiv(program, GL_LINK_STATUS, &linkStatus); checkGlError();
+        if (linkStatus != GL_TRUE) {
+            GLint bufLength = 0;
+            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLength); checkGlError();
+            if (bufLength) {
+                char* buf = (char*) malloc(bufLength);
+                if (buf) {
+                    glGetProgramInfoLog(program, bufLength, nullptr, buf); checkGlError();
+                    log("Xlorie: Could not link program:\n%s\n", buf);
+                    free(buf);
+                }
+            }
+            glDeleteProgram(program); checkGlError();
+            program = 0;
+        }
+    }
+    return program;
+}
+
 static EGLDisplay egl_display = EGL_NO_DISPLAY;
 static EGLContext ctx = EGL_NO_CONTEXT;
 static EGLSurface sfc = EGL_NO_SURFACE;
@@ -606,64 +664,6 @@ void renderer_print_fps(float millis) {
         log("%d frames in %.1f seconds = %.1f FPS",
                                 renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
     renderedFrames = 0;
-}
-
-static GLuint load_shader(GLenum shaderType, const char* pSource) {
-    GLint compiled = 0;
-    GLuint shader = glCreateShader(shaderType); checkGlError();
-    if (shader) {
-        glShaderSource(shader, 1, &pSource, nullptr); checkGlError();
-        glCompileShader(shader); checkGlError();
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled); checkGlError();
-        if (!compiled) {
-            GLint infoLen = 0;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen); checkGlError();
-            if (infoLen) {
-                char* buf = (char*) malloc(infoLen);
-                if (buf) {
-                    glGetShaderInfoLog(shader, infoLen, nullptr, buf); checkGlError();
-                    log("Xlorie: Could not compile shader %d:\n%s\n", shaderType, buf);
-                    free(buf);
-                }
-                glDeleteShader(shader); checkGlError();
-                shader = 0;
-            }
-        }
-    }
-    return shader;
-}
-
-static GLuint create_program(const char* p_vertex_source, const char* p_fragment_source) {
-    GLuint program, vertexShader, pixelShader;
-    GLint linkStatus = GL_FALSE;
-    vertexShader = load_shader(GL_VERTEX_SHADER, p_vertex_source);
-    pixelShader = load_shader(GL_FRAGMENT_SHADER, p_fragment_source);
-    if (!pixelShader || !vertexShader) {
-        return 0;
-    }
-
-    program = glCreateProgram(); checkGlError();
-    if (program) {
-        glAttachShader(program, vertexShader); checkGlError();
-        glAttachShader(program, pixelShader); checkGlError();
-        glLinkProgram(program); checkGlError();
-        glGetProgramiv(program, GL_LINK_STATUS, &linkStatus); checkGlError();
-        if (linkStatus != GL_TRUE) {
-            GLint bufLength = 0;
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLength); checkGlError();
-            if (bufLength) {
-                char* buf = (char*) malloc(bufLength);
-                if (buf) {
-                    glGetProgramInfoLog(program, bufLength, nullptr, buf); checkGlError();
-                    log("Xlorie: Could not link program:\n%s\n", buf);
-                    free(buf);
-                }
-            }
-            glDeleteProgram(program); checkGlError();
-            program = 0;
-        }
-    }
-    return program;
 }
 
 #define USAGE (AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN)
