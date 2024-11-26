@@ -123,9 +123,7 @@ jobs:
       - name: Build gradle project
         run: |
           cd apk
-
-          # info shows cmake output but also tons of Transforming Artifact output
-          if ./gradlew build --info
+          if ./gradlew build --info --build-cache
               then
                   echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
               else
@@ -141,13 +139,13 @@ jobs:
           false
 
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew assembleDebug
+        run: cd apk ; ./gradlew --build-cache assembleDebug
 
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew assemble
+        run: cd apk ; ./gradlew --build-cache assemble
 
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew ${{ env.main_project_module }}:bundleRelease
+        run: cd apk ; ./gradlew --build-cache ${{ env.main_project_module }}:bundleRelease
 
       - name: Move apk
         run: |
