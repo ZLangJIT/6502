@@ -6,14 +6,14 @@ import com.google.androidgamesdk.GameActivity
 class MainActivity : GameActivity() {
     companion object {
         init {
-            System.loadLibrary("opengltutorial")
+            System.loadLibrary("emu_main_jni")
         }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
-            hideSystemUi()
+            //hideSystemUi()
         }
     }
 
