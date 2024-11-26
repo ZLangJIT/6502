@@ -120,10 +120,15 @@ jobs:
       - name: Change wrapper permissions
         run: chmod +x ./apk/gradlew
 
+      - name: gradle help
+        run: |
+          cd apk
+          ./gradlew --help || true
+
       - name: Build gradle project
         run: |
           cd apk
-          if ./gradlew build --info --build-cache
+          if ./gradlew --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --foreground --no-parallel build
               then
                   echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
               else
@@ -139,13 +144,13 @@ jobs:
           false
 
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew --build-cache assembleDebug
+        run: cd apk ; ./gradlew --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --foreground --no-parallel assembleDebug
 
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew --build-cache assemble
+        run: cd apk ; ./gradlew --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --foreground --no-parallel assemble
 
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
-        run: cd apk ; ./gradlew --build-cache ${{ env.main_project_module }}:bundleRelease
+        run: cd apk ; ./gradlew --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --foreground --no-parallel ${{ env.main_project_module }}:bundleRelease
 
       - name: Move apk
         run: |
