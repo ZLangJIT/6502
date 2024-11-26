@@ -39,29 +39,26 @@ class getBackgroundNotification(private val context: Context, private var myServ
         val pendingIntent = PendingIntent.getActivity(context, 0, notifyIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
             mNotification = Notification.Builder(context, CHANNEL_ID)
                     // Set the intent that will fire when the user taps the notification
                     .setContentIntent(pendingIntent)
-                    .setSmallIcon(R.drawable.ic_logo_contrast)
+                    .setSmallIcon(R.drawable.ic_launcher)
                     .setAutoCancel(true)
                     .setContentTitle(title)
-                    .setStyle(Notification.BigTextStyle()
-                            .bigText(message))
-                    .setContentText(message).build()
+                    .setStyle(Notification.BigTextStyle().bigText(message))
+                    .setContentText(message)
+                    .build()
         } else {
-
             mNotification = Notification.Builder(context)
                     // Set the intent that will fire when the user taps the notification
                     .setContentIntent(pendingIntent)
-                    .setSmallIcon(R.drawable.ic_logo_contrast)
+                    .setSmallIcon(R.drawable.ic_launcher)
                     .setAutoCancel(true)
                     .setPriority(Notification.PRIORITY_MAX)
                     .setContentTitle(title)
-                    .setStyle(Notification.BigTextStyle()
-                            .bigText(message))
-                    .setContentText(message).build()
-
+                    .setStyle(Notification.BigTextStyle().bigText(message))
+                    .setContentText(message)
+                    .build()
         }
 
         myService?.startForeground(999, mNotification)

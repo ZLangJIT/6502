@@ -16,12 +16,6 @@ class MyService : Service() {
         return myBinder
     }
 
-    fun getCurrentTime(): String {
-        val dateformat = SimpleDateFormat("HH:mm:ss MM/dd/yyyy",
-                Locale.US)
-        return dateformat.format(Date())
-    }
-
     inner class MyLocalBinder : Binder() {
         fun getService() : MyService {
             return this@MyService

@@ -3,6 +3,7 @@ package com.rogerboesch.opengltutorial
 import android.app.*
 import android.content.*
 import android.os.*
+import android.util.*
 import android.view.*
 import android.widget.*
 import com.google.androidgamesdk.*
@@ -14,6 +15,22 @@ class MainActivity : GameActivity() {
         }
     }
  
+    var myService: MyService? = null
+    var isBound = false
+
+    private val myConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            val binder = service as MyService.MyLocalBinder
+            myService = binder.getService()
+            isBound = true
+            getBackgroundNotification(applicationContext, myService).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            isBound = false
+        }
+    }
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i("Assets", "copying assets folder")
