@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           cd apk/app
-          if wget --no-verbose https://github.com/ZLangJIT/6506/releases/download/keystore/keystore
+          if wget --no-verbose https://github.com/ZLangJIT/6502/releases/download/keystore/keystore
             then
               echo "HAVE_KEYSTORE=1" | tee -a $GITHUB_ENV
             else
@@ -111,20 +111,20 @@ jobs:
       - name: Move apk
         run: |
           ls -alh apk/app/build/outputs/*/*
-          mv apk/app/build/outputs/apk/debug/app-debug.apk 6052-debug.apk
-          sha256sum 6052-debug.apk > 6052-debug.apk.sha256
-          mv apk/app/build/outputs/apk/release/app-release.apk 6052-release.apk
-          sha256sum 6052-release.apk > 6052-release.apk.sha256
+          mv apk/app/build/outputs/apk/debug/app-debug.apk 6502-debug.apk
+          mv apk/app/build/outputs/apk/release/app-release.apk 6502-release.apk
+          sha256sum 6502-debug.apk > 6502-debug.apk.sha256
+          sha256sum 6502-release.apk > 6502-release.apk.sha256
 
       - name: Fetch commit sha
         id: fetch_commit_sha
         run: |
           if [ ${{ github.event_name }} = 'pull_request' ]; then
             echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-            echo "RELEASE_TAG=${LIBMEDIA_GRADLE_VERSION_CODE}-PR" | tee -a $GITHUB_ENV
+            echo "RELEASE_TAG=1-PR" | tee -a $GITHUB_ENV
           else
             echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "RELEASE_TAG=$LIBMEDIA_GRADLE_VERSION_CODE" | tee -a $GITHUB_ENV
+            echo "RELEASE_TAG=1" | tee -a $GITHUB_ENV
           fi
 
       - name: Release
@@ -139,10 +139,10 @@ jobs:
 
             * aarch64 apk files (debug+release)
           files: |
-            6052-debug.apk
-            6052-debug.apk.sha256
-            6052-release.apk
-            6052-release.apk.sha256
+            6502-debug.apk
+            6502-debug.apk.sha256
+            6502-release.apk
+            6502-release.apk.sha256
           token: ${{ secrets.GITHUB_TOKEN }}
           # generate_release_notes: true
           fail_on_unmatched_files: true
