@@ -823,6 +823,8 @@ bool motion_event_filter_func(const GameActivityMotionEvent *motionEvent) {
 
 void android_main(struct android_app *pApp) {
     log("Welcome to android_main");
+    
+    
 
     pApp->onAppCmd = handle_cmd;
 

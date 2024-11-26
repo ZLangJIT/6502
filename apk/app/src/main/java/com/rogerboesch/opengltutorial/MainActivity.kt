@@ -7,6 +7,8 @@ class MainActivity : GameActivity() {
     companion object {
         init {
             System.loadLibrary("emu_main_jni")
+            Log.i("Assets", "copying assets folder")
+            AssetsManager().copyAssetFolder(assets, filesDir.absolutePath)
         }
     }
 
