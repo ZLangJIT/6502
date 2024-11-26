@@ -9,13 +9,13 @@ extern "C" {
     void handle_cmd(android_app *pApp, int32_t cmd) {
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
-            pApp->userData = nullptr; //new RBRenderer(pApp);
+            pApp->userData = nullptr; new RBRenderer(pApp);
             break;
         case APP_CMD_TERM_WINDOW:
             if (pApp->userData) {
-                //auto *pRenderer = reinterpret_cast<RBRenderer *>(pApp->userData);
-                //pApp->userData = nullptr;
-                //delete pRenderer;
+                auto *pRenderer = reinterpret_cast<RBRenderer *>(pApp->userData);
+                pApp->userData = nullptr;
+                delete pRenderer;
             }
             break;
         default:
@@ -30,7 +30,7 @@ bool motion_event_filter_func(const GameActivityMotionEvent *motionEvent) {
 }
 
 void android_main(struct android_app *pApp) {
-    //RBLOG("Welcome to android_main");
+    RBLOG("Welcome to android_main");
 
     pApp->onAppCmd = handle_cmd;
 
@@ -50,7 +50,7 @@ void android_main(struct android_app *pApp) {
                     done = true;
                     break;
                 case ALOOPER_EVENT_ERROR:
-                    //RBERROR("ALooper_pollOnce returned an error");
+                    RBERROR("ALooper_pollOnce returned an error");
                     break;
                 case ALOOPER_POLL_CALLBACK:
                     break;
@@ -62,10 +62,10 @@ void android_main(struct android_app *pApp) {
         }
 
         if (pApp->userData) {
-            //auto *pRenderer = reinterpret_cast<RBRenderer *>(pApp->userData);
+            auto *pRenderer = reinterpret_cast<RBRenderer *>(pApp->userData);
 
-            //pRenderer->HandleInput();
-            //pRenderer->RenderFrame();
+            pRenderer->HandleInput();
+            pRenderer->RenderFrame();
         }
     } while (!pApp->destroyRequested);
 }

@@ -152,9 +152,9 @@ jobs:
       - name: Move apk
         run: |
           ls -alh apk/app/build/outputs/*/*
-          mv apk/app/build/outputs/apk/debug/github-action-automated-debug.apk 6502-debug.apk
-          mv apk/app/build/outputs/apk/release/github-action-automated-release.apk 6502-release.apk
-          mv apk/app/build/outputs/bundle/release/github-action-automated-release.aab 6502-release-bundle.aab
+          mv apk/app/build/outputs/apk/debug/app-debug.apk 6502-debug.apk
+          mv apk/app/build/outputs/apk/release/app-release.apk 6502-release.apk
+          mv apk/app/build/outputs/bundle/release/app-release.aab 6502-release-bundle.aab
           sha256sum 6502-debug.apk > 6502-debug.apk.sha256
           sha256sum 6502-release.apk > 6502-release.apk.sha256
           sha256sum 6502-release-bundle.aab > 6502-release-bundle.aab.sha256

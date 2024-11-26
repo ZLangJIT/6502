@@ -41,10 +41,10 @@ vrEmu6502Model cpuModel = CPU_65C02;
  */
 void processArgs(int argc, char* argv[]);
 void outputStep(VrEmu6502* vr6502);
-void banner();
+void banner(void);
 void argError(const char* opt, const char* arg);
 void usage(int status);
-void beginReport();
+void beginReport(void);
 void endReport(int status);
 int readHexFile(const char* hexFilename);
 
@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
   return status;
 }
 
-const char* processorModel()
+const char* processorModel(void)
 {
   switch (cpuModel)
   {
@@ -384,7 +384,7 @@ void outputStep(VrEmu6502* vr6502)
 /* ------------------------------------------------------------------
  * startup banner
  */
-void banner()
+void banner(void)
 {
   printf("\n  -------------------------------------\n");
   printf("          vrEmu6502 Test Runner\n");
@@ -439,7 +439,7 @@ void usage(int status)
 /* ------------------------------------------------------------------
  * output current run options
  */
-void beginReport()
+void beginReport(void)
 {
   printf("Options:\n");
   printf("  Processor model:            %s\n", processorModel());

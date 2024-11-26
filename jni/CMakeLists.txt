@@ -6,6 +6,16 @@ project("emu_main_jni")
 
 add_library(emu_main_jni SHARED
 	jni.cpp
+        game/Cube3D.cpp
+        base/RBGame.cpp
+        base/RBGameObject.cpp
+        base/RBColor.cpp
+        base/RBRenderHelper.cpp
+        base/RBRenderer.cpp
+        base/RBShader.cpp
+        base/RBClock.cpp
+        base/RBMath.cpp
+        base/RBLog.cpp
 )
 
 find_library(log-lib log)
