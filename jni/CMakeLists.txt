@@ -2,12 +2,6 @@ cmake_minimum_required(VERSION 3.18.8)
 
 project("emu_main_jni")
 
-
-# Gradle automatically packages shared libraries with your APK.
-# but does not package executables, set the output path to the assets folder
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}/../apk/app/src/main/assets/${ANDROID_ABI})
-#set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIRECTORY}/../apk/app/src/main/assets")
-
 add_library(emu_main_jni SHARED
 	jni.cpp
         game/Pong.cpp
@@ -37,4 +31,4 @@ target_link_libraries(emu_main_jni
         log
 )
 
-add_executable(emu_main_jni_client jni_client.cpp)
+add_executable(executable__emu_main_jni_client.so jni_client.cpp)
