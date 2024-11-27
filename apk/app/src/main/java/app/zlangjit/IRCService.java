@@ -84,15 +84,9 @@ public class IRCService extends Service {
             b.append("Connected to 0 networks");
             Intent mainIntent = new Intent(this, MainActivity.class);
             PendingIntent exitIntent;
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-              exitIntent = PendingIntent.getBroadcast(this, EXIT_ACTION_ID,
-                      ExitActionReceiver.getIntent(this),
-                      PendingIntent.FLAG_CANCEL_CURRENT|PendingIntent.FLAG_MUTABLE);
-            } else {
-              exitIntent = PendingIntent.getBroadcast(this, EXIT_ACTION_ID,
-                      ExitActionReceiver.getIntent(this),
-                      PendingIntent.FLAG_CANCEL_CURRENT);
-            }
+            exitIntent = PendingIntent.getBroadcast(this, EXIT_ACTION_ID,
+                    ExitActionReceiver.getIntent(this),
+                    PendingIntent.FLAG_CANCEL_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             NotificationCompat.Builder notification = new NotificationCompat.Builder(this, IDLE_NOTIFICATION_CHANNEL)
                     .setContentTitle("IRCService")
                     .setContentText(b.toString())
