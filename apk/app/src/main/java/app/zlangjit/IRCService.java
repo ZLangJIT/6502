@@ -99,7 +99,7 @@ public class IRCService extends Service {
                     .setContentTitle("IRCService")
                     .setContentText(b.toString())
                     .setPriority(NotificationCompat.PRIORITY_MIN)
-                    .setOnlyAlertOnce(true);
+                    .setOnlyAlertOnce(true)
                     .addAction(R.drawable.ic_launcher_foreground, "Exit", exitIntent);
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
               notification.setContentIntent(PendingIntent.getActivity(
