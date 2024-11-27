@@ -15,56 +15,15 @@ class MainActivity : GameActivity() {
         }
     }
  
-    var myService: MyService? = null
-    var isBound = false
-
-    private val myConnection = object : ServiceConnection {
-        override fun onServiceConnected(className: ComponentName, service: IBinder) {
-            val binder = service as MyService.MyLocalBinder
-            myService = binder.getService()
-            isBound = true
-            getBackgroundNotification(applicationContext, myService).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
-        }
-
-        override fun onServiceDisconnected(name: ComponentName) {
-            isBound = false
-        }
-    }
-
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i("Assets", "copying assets folder")
         AssetsManager().copyAssetFolder(assets, filesDir.absolutePath)
-
-        val serviceClass = MyService::class.java
-        val serviceIntent = Intent(applicationContext, serviceClass)
-        
-        // If the service is not running then start it
-        if (!isServiceRunning(serviceClass)) {
-            // Start the service
-            startService(serviceIntent)
-            bindService(serviceIntent, myConnection, Context.BIND_AUTO_CREATE)
-        } else {
-            toast("Service already running.")
-            bindService(serviceIntent, myConnection, Context.BIND_AUTO_CREATE)
-        }
+        IRCService.createNotificationChannel(this);
+        IRCService.start(this);
     }
 
-    // Custom method to determine whether a service is running
-    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-
-        // Loop through the running services
-        for (service in activityManager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.name == service.service.className) {
-                // If the service is running then return true
-                return true
-            }
-        }
-        return false
-    }
-
-  override fun onWindowFocusChanged(hasFocus: Boolean) {
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
             //hideSystemUi()
