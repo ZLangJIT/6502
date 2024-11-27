@@ -1,4 +1,4 @@
-package com.rogerboesch.opengltutorial
+package app.zlangjit
 
 import android.app.NotificationChannel;
 import android.app.PendingIntent;
@@ -18,12 +18,6 @@ import android.util.Log;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import io.mrarm.chatlib.dto.MessageId;
-import io.mrarm.chatlib.dto.MessageInfo;
-import io.mrarm.chatlib.message.MessageListener;
-import io.mrarm.irc.job.ServerPingScheduler;
-import io.mrarm.irc.util.WarningHelper;
 
 public class IRCService extends Service {
 

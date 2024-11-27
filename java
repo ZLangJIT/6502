@@ -1,1 +1,1 @@
-apk/app/src/main/java/com/rogerboesch/opengltutorial
+apk/app/src/main/java/app/zlangjit
