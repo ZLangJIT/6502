@@ -1,4 +1,4 @@
-package app.zlangjit
+package app.zlangjit;
 
 import android.app.NotificationChannel;
 import android.app.PendingIntent;
