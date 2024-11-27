@@ -37,11 +37,11 @@ public class IRCService extends Service {
     public static void start(Context context) {
         Intent intent = new Intent(context, IRCService.class);
         intent.setAction(ACTION_START_FOREGROUND);
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        context.startForegroundService(intent);
-            } else {
-        context.startService(intent);
-            }
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          context.startForegroundService(intent);
+        } else {
+          context.startService(intent);
+        }
     }
 
     public static void stop(Context context) {
