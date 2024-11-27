@@ -37,7 +37,11 @@ public class IRCService extends Service {
     public static void start(Context context) {
         Intent intent = new Intent(context, IRCService.class);
         intent.setAction(ACTION_START_FOREGROUND);
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         context.startForegroundService(intent);
+            } else {
+        context.startService(intent);
+            }
     }
 
     public static void stop(Context context) {
@@ -90,7 +94,11 @@ public class IRCService extends Service {
                     .setContentIntent(PendingIntent.getActivity(this, IDLE_NOTIFICATION_ID, mainIntent, PendingIntent.FLAG_CANCEL_CURRENT))
                     .addAction(R.drawable.ic_launcher_foreground, "Exit", exitIntent);
             notification.setSmallIcon(R.drawable.ic_launcher_foreground);
-            startForeground(IDLE_NOTIFICATION_ID, notification.build(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+              startForeground(IDLE_NOTIFICATION_ID, notification.build(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            } else {
+              startForeground(IDLE_NOTIFICATION_ID, notification.build());
+            }
         }
         return START_STICKY;
     }
