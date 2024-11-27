@@ -5,7 +5,8 @@ project("emu_main_jni")
 
 # Gradle automatically packages shared libraries with your APK.
 # but does not package executables, set the output path to the assets folder
-set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIRECTORY}/../apk/app/src/main/assets")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/android-build/libs/${ANDROID_ABI})
+#set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIRECTORY}/../apk/app/src/main/assets")
 
 add_library(emu_main_jni SHARED
 	jni.cpp
