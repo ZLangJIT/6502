@@ -84,7 +84,7 @@ public class IRCService extends Service {
             b.append("Connected to 0 networks");
             Intent mainIntent = new Intent(this, MainActivity.class);
             PendingIntent exitIntent;
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
               exitIntent = PendingIntent.getBroadcast(
                 this, EXIT_ACTION_ID, ExitActionReceiver.getIntent(this),
                 PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE
@@ -101,7 +101,7 @@ public class IRCService extends Service {
                     .setPriority(NotificationCompat.PRIORITY_MIN)
                     .setOnlyAlertOnce(true)
                     .addAction(R.drawable.ic_launcher_foreground, "Exit", exitIntent);
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
               notification.setContentIntent(PendingIntent.getActivity(
                 this, IDLE_NOTIFICATION_ID, mainIntent,
                 PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE
