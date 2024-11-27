@@ -26,7 +26,6 @@ public class IRCService extends Service {
 
     private static final String TAG = "IRCService";
 
-    public static String APK_PATH;
     public static String FILES_DIR;
 
     public static final int IDLE_NOTIFICATION_ID = 100;
@@ -66,11 +65,6 @@ public class IRCService extends Service {
         if (service_thread != null) {
           service_running = true;
           service_thread = new Thread(() -> {
-            try {
-              new net.lingala.zip4j.ZipFile(APK_PATH).extractFile("lib/", FILES_DIR + "/lib");
-            } catch (net.lingala.zip4j.exception.ZipException e) {
-              e.printStackTrace();
-            }
             while (service_running) {
               try {
                 Thread.sleep(16);

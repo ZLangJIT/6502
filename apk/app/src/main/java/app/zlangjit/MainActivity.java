@@ -24,9 +24,11 @@ public class MainActivity extends GameActivity {
     // };
 
     @Override
+    @Throws(net.lingala.zip4j.exception.ZipException)
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        IRCService.APK_PATH = getApplicationInfo().publicSourceDir;
+        new net.lingala.zip4j.ZipFile(getApplicationInfo().publicSourceDir)
+          .extractFile("lib/", FILES_DIR + "/lib");
         IRCService.FILES_DIR = getFilesDir().getPath();
         IRCService.createNotificationChannel(this);
         IRCService.start(this);
