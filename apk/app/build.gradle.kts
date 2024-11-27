@@ -46,6 +46,13 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+    
     buildFeatures {
         viewBinding = true
         buildConfig = true
