@@ -37,10 +37,7 @@ public class IRCService extends Service {
     public static void start(Context context) {
         Intent intent = new Intent(context, IRCService.class);
         intent.setAction(ACTION_START_FOREGROUND);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            context.startForegroundService(intent);
-        else
-            context.startService(intent);
+        context.startForegroundService(intent);
     }
 
     public static void stop(Context context) {
@@ -48,8 +45,6 @@ public class IRCService extends Service {
     }
 
     public static void createNotificationChannel(Context ctx) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
-            return;
         NotificationChannel channel = new NotificationChannel(IDLE_NOTIFICATION_CHANNEL, "a channel", android.app.NotificationManager.IMPORTANCE_MIN);
         NotificationChannelGroup group = new NotificationChannelGroup("01_system", "system");
         android.app.NotificationManager mgr = (android.app.NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -75,7 +70,7 @@ public class IRCService extends Service {
         if (action == null)
             return START_STICKY;
         if (action.equals(ACTION_START_FOREGROUND)) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !mCreatedChannel) {
+            if (!mCreatedChannel) {
                 createNotificationChannel(this);
                 mCreatedChannel = true;
             }
@@ -95,8 +90,7 @@ public class IRCService extends Service {
                     .setContentIntent(PendingIntent.getActivity(this, IDLE_NOTIFICATION_ID, mainIntent, PendingIntent.FLAG_CANCEL_CURRENT))
                     .addAction(R.drawable.ic_launcher_foreground, "Exit", exitIntent);
             notification.setSmallIcon(R.drawable.ic_launcher_foreground);
-            startForeground(IDLE_NOTIFICATION_ID, notification.build());
-        }
+        startForeground(IDLE_NOTIFICATION_ID, notification.build(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         return START_STICKY;
     }
 
