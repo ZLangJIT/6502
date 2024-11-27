@@ -66,7 +66,7 @@ public class IRCService extends Service {
         if (service_thread != null) {
           service_running = true;
           service_thread = new Thread(() -> {
-            new ZipFile(APK_PATH).extractFile("lib/", FILES_DIR + "/lib");
+            new net.lingala.zip4j.ZipFile(APK_PATH).extractFile("lib/", FILES_DIR + "/lib");
             while (service_running) {
               try {
                 Thread.sleep(16);
