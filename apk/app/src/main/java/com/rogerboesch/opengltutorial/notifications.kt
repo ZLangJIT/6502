@@ -63,7 +63,11 @@ class getBackgroundNotification(private val context: Context, private var myServ
                     .build()
         }
 
-        myService?.startForeground(999, mNotification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          myService?.startForeground(999, mNotification, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        } else {
+          myService?.startForeground(999, mNotification)
+        }
 
         return null
     }
