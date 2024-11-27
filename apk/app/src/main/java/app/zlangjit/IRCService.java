@@ -121,7 +121,7 @@ public class IRCService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            ((MainActivity) context.getApplicationContext()).requestExit();
+          IRCService.stop(this);
         }
     }
 }

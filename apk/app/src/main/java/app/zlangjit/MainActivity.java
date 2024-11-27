@@ -17,11 +17,6 @@ public class MainActivity extends GameActivity {
         IRCService.start(this);
     }
 
-    public boolean requestExit() {
-        IRCService.stop(this);
-        return true;
-    }
-    
     boolean saved_vis = false;
     int vis_original = 0;
     int vis_immersive = 0;
