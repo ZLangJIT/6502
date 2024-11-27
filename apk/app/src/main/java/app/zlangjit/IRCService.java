@@ -49,13 +49,12 @@ public class IRCService extends Service {
     public static void createNotificationChannel(Context ctx) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             return;
-        NotificationChannel channel = new NotificationChannel(IDLE_NOTIFICATION_CHANNEL,
-                "a channel",
-                android.app.NotificationManager.IMPORTANCE_MIN);
-        channel.setGroup(android.app.NotificationManager.getSystemNotificationChannelGroup(ctx));
+        NotificationChannel channel = new NotificationChannel(IDLE_NOTIFICATION_CHANNEL, "a channel", android.app.NotificationManager.IMPORTANCE_MIN);
+        NotificationChannelGroup group = new NotificationChannelGroup("01_system", "system");
+        android.app.NotificationManager mgr = (android.app.NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        mgr.createNotificationChannelGroup(group);
+        channel.setGroup("01_system");
         channel.setShowBadge(false);
-        android.app.NotificationManager mgr = (android.app.NotificationManager)
-                ctx.getSystemService(NOTIFICATION_SERVICE);
         mgr.createNotificationChannel(channel);
     }
 
