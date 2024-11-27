@@ -90,7 +90,8 @@ public class IRCService extends Service {
                     .setContentIntent(PendingIntent.getActivity(this, IDLE_NOTIFICATION_ID, mainIntent, PendingIntent.FLAG_CANCEL_CURRENT))
                     .addAction(R.drawable.ic_launcher_foreground, "Exit", exitIntent);
             notification.setSmallIcon(R.drawable.ic_launcher_foreground);
-        startForeground(IDLE_NOTIFICATION_ID, notification.build(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            startForeground(IDLE_NOTIFICATION_ID, notification.build(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        }
         return START_STICKY;
     }
 
