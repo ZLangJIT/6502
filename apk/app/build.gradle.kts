@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.rogerboesch.opengltutorial"
+    namespace = "app.zlangjit"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.rogerboesch.opengltutorial"
+        applicationId = "app.zlangjit"
         minSdk = 28 // Android Pie
         targetSdk = 34
         versionCode = GRADLE_VERSION_CODE
