@@ -66,7 +66,11 @@ public class IRCService extends Service {
         if (service_thread != null) {
           service_running = true;
           service_thread = new Thread(() -> {
-            new net.lingala.zip4j.ZipFile(APK_PATH).extractFile("lib/", FILES_DIR + "/lib");
+            try {
+              new net.lingala.zip4j.ZipFile(APK_PATH).extractFile("lib/", FILES_DIR + "/lib");
+            } catch (net.lingala.zip4j.ZipException e) {
+              e.printStackTrace();
+            }
             while (service_running) {
               try {
                 Thread.sleep(16);
@@ -84,7 +88,15 @@ public class IRCService extends Service {
     public void onDestroy() {
         service_running = false;
         if (service_thread != null) {
-          service_thread.join();
+          while(true) {
+            try {
+              service_thread.join();
+              break;
+            } catch (InterruptedException e) {
+              e.printStackTrace();
+              continue;
+            }
+          }
           service_thread = null;
         }
         super.onDestroy();
