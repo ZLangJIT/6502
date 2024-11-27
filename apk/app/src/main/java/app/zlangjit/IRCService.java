@@ -44,10 +44,6 @@ public class IRCService extends Service {
         }
     }
 
-    public static void stop(Context context) {
-        context.stopService(new Intent(context, IRCService.class));
-    }
-
     public static void createNotificationChannel(Context ctx) {
         NotificationChannel channel = new NotificationChannel(IDLE_NOTIFICATION_CHANNEL, "a channel", android.app.NotificationManager.IMPORTANCE_MIN);
         NotificationChannelGroup group = new NotificationChannelGroup("01_system", "system");
@@ -121,7 +117,7 @@ public class IRCService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-          IRCService.stop(context);
+          context.stopService(new Intent(context, IRCService.class));
         }
     }
 }
