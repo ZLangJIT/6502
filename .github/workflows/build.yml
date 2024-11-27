@@ -126,22 +126,7 @@ jobs:
           ./gradlew --help || true
 
       - name: Build gradle project
-        run: |
-          cd apk
-          if ./gradlew --no-daemon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel build
-              then
-                  echo "GRADLE_RETURN_CODE=0" | tee -a $GITHUB_ENV
-              else
-                  echo "GRADLE_RETURN_CODE=1" | tee -a $GITHUB_ENV
-          fi
-
-      - name: APK build failed - print last 600 lines from cmake [apk]
-        if: ${{ env.GRADLE_RETURN_CODE == '1' }}
-        shell: bash
-        run: |
-          echo "printing the last 600 lines from app/.../cmake_server_log.txt"
-          tail -n 600 apk/app/.cxx/cmake/debug/arm64-v8a/cmake_server_log.txt
-          false
+        run: cd apk ; ./gradlew --no-daemon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel build
 
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
         run: cd apk ; ./gradlew assembleDebug
