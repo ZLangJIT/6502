@@ -114,7 +114,7 @@ public class IRCService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-          context.sendBroadcast(new Intent("app.zlangjit.broadcast.service_exit_pressed"));
+          context.sendBroadcast(new Intent("app.zlangjit.broadcast.service_exit_pressed").setPackage("app.zlangjit"));
           context.stopService(new Intent(context, IRCService.class));
         }
     }
