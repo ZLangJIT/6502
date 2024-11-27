@@ -28,7 +28,7 @@ public class MainActivity extends GameActivity {
         super.onCreate(savedInstanceState);
         IRCService.createNotificationChannel(this);
         IRCService.start(this);
-        registerReceiver(foo, IntentFilter("app.zlangjit.broadcast.service_exit_pressed"), Context.RECEIVER_NOT_EXPORTED);
+        registerReceiver(foo, new IntentFilter("app.zlangjit.broadcast.service_exit_pressed"), Context.RECEIVER_NOT_EXPORTED);
     }
 
     boolean saved_vis = false;
