@@ -110,7 +110,6 @@ public class IRCService extends Service {
     }
 
     public static class ExitActionReceiver extends BroadcastReceiver {
-
         public static Intent getIntent(Context context) {
             return new Intent(context, ExitActionReceiver.class);
         }

@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.18.8)
 
 project("emu_main_jni")
 
+
 # Gradle automatically packages shared libraries with your APK.
+# but does not package executables, set the output path to the assets folder
+set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIRECTORY}/../apk/app/src/main/assets")
 
 add_library(emu_main_jni SHARED
 	jni.cpp
@@ -34,7 +37,3 @@ target_link_libraries(emu_main_jni
 )
 
 add_executable(emu_main_jni_client jni_client.cpp)
-install(
-  TARGETS emu_main_jni_client
-  DESTINATION ${CMAKE_CURRENT_SOURCE_DIRECTORY}/../apk/app/src/main/assets
-)
