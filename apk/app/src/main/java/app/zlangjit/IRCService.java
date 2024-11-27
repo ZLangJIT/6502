@@ -19,6 +19,8 @@ import android.util.Log;
 import java.util.HashMap;
 import java.util.Map;
 
+import app.zlangjit.R;
+
 public class IRCService extends Service {
 
     private static final String TAG = "IRCService";
@@ -29,6 +31,8 @@ public class IRCService extends Service {
 
     private static final String IDLE_NOTIFICATION_CHANNEL = "IdleNotification";
 
+    private boolean mCreatedChannel = false;
+
     public static void start(Context context) {
         Intent intent = new Intent(context, IRCService.class);
         intent.setAction(ACTION_START_FOREGROUND);
@@ -37,6 +41,7 @@ public class IRCService extends Service {
         else
             context.startService(intent);
     }
+
     public static void stop(Context context) {
         context.stopService(new Intent(context, IRCService.class));
     }
@@ -47,7 +52,7 @@ public class IRCService extends Service {
         NotificationChannel channel = new NotificationChannel(IDLE_NOTIFICATION_CHANNEL,
                 "a channel",
                 android.app.NotificationManager.IMPORTANCE_MIN);
-        channel.setGroup(NotificationManager.getSystemNotificationChannelGroup(ctx));
+        channel.setGroup(android.app.NotificationManager.getSystemNotificationChannelGroup(ctx));
         channel.setShowBadge(false);
         android.app.NotificationManager mgr = (android.app.NotificationManager)
                 ctx.getSystemService(NOTIFICATION_SERVICE);
@@ -63,7 +68,7 @@ public class IRCService extends Service {
     public void onDestroy() {
         super.onDestroy();
     }
-
+    
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent != null ? intent.getAction() : null;
@@ -78,7 +83,7 @@ public class IRCService extends Service {
             StringBuilder b = new StringBuilder();
             int connectedCount = 0, connectingCount = 0, disconnectedCount = 0;
             b.append("Connected to 0 networks");
-            Intent mainIntent = MainActivity.getLaunchIntent(this, null, null);
+            Intent mainIntent = new Intent(context, MainActivity.class);
             PendingIntent exitIntent = PendingIntent.getBroadcast(this, EXIT_ACTION_ID,
                     ExitActionReceiver.getIntent(this),
                     PendingIntent.FLAG_CANCEL_CURRENT);
@@ -88,8 +93,8 @@ public class IRCService extends Service {
                     .setPriority(NotificationCompat.PRIORITY_MIN)
                     .setOnlyAlertOnce(true)
                     .setContentIntent(PendingIntent.getActivity(this, IDLE_NOTIFICATION_ID, mainIntent, PendingIntent.FLAG_CANCEL_CURRENT))
-                    .addAction(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? R.drawable.ic_close : R.drawable.ic_notification_close, getString(R.string.action_exit), exitIntent);
-            notification.setSmallIcon(R.drawable.ic_close);
+                    .addAction(ic_launcher_foreground, "Exit", exitIntent);
+            notification.setSmallIcon(R.drawable.ic_launcher_foreground);
             startForeground(IDLE_NOTIFICATION_ID, notification.build());
         }
         return START_STICKY;
@@ -109,7 +114,7 @@ public class IRCService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            //((IRCApplication) context.getApplicationContext()).requestExit();
+            ((MainActivity) context.getApplicationContext()).requestExit();
         }
     }
 }
