@@ -78,19 +78,17 @@ public class IRCService extends Service {
             StringBuilder b = new StringBuilder();
             int connectedCount = 0, connectingCount = 0, disconnectedCount = 0;
             b.append("Connected to 0 networks");
-            Intent mainIntent = new Intent(this, MainActivity.class);
-            PendingIntent exitIntent = PendingIntent.getBroadcast(
-              this, EXIT_ACTION_ID, ExitActionReceiver.getIntent(this),
-              PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
             NotificationCompat.Builder notification = new NotificationCompat.Builder(this, IDLE_NOTIFICATION_CHANNEL)
                     .setContentTitle("IRCService")
                     .setContentText(b.toString())
                     .setPriority(NotificationCompat.PRIORITY_MIN)
                     .setOnlyAlertOnce(true)
-                    .addAction(R.drawable.ic_launcher_foreground, "Exit", exitIntent)
+                    // .addAction(R.drawable.ic_launcher_foreground, "Exit", PendingIntent.getBroadcast(
+                    //   this, EXIT_ACTION_ID, ExitActionReceiver.getIntent(this),
+                    //   PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    // ))
                     .setContentIntent(PendingIntent.getActivity(
-                      this, IDLE_NOTIFICATION_ID, mainIntent,
+                      this, IDLE_NOTIFICATION_ID, new Intent(this, MainActivity.class),
                       PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE
                     ));
             notification.setSmallIcon(R.drawable.ic_launcher_foreground);
