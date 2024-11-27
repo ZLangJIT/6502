@@ -10,11 +10,21 @@ public class MainActivity extends GameActivity {
         System.loadLibrary("emu_main_jni");
     }
     
+    final BroadcastReceiver foo = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            MainActivity a = (MainActivity)context;
+            a.unregisterReceiver(this);
+            a.finish();
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         IRCService.createNotificationChannel(this);
         IRCService.start(this);
+        registerReceiver(foo, IntentFilter("app.zlangjit.broadcast.service_exit_pressed"), Context.RECEIVER_NOT_EXPORTED);
     }
 
     boolean saved_vis = false;

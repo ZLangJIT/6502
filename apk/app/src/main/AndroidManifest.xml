@@ -18,7 +18,8 @@
         <service android:name=".IRCService" android:foregroundServiceType="mediaPlayback" />
         <receiver
             android:name=".IRCService$ExitActionReceiver"
-            android:exported="false" />
+            android:exported="false"
+        />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -34,5 +35,4 @@
                 android:value="emu_main_jni" />
         </activity>
     </application>
-
 </manifest>
