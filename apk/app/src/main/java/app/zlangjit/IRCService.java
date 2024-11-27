@@ -84,16 +84,33 @@ public class IRCService extends Service {
             b.append("Connected to 0 networks");
             Intent mainIntent = new Intent(this, MainActivity.class);
             PendingIntent exitIntent;
-            exitIntent = PendingIntent.getBroadcast(this, EXIT_ACTION_ID,
-                    ExitActionReceiver.getIntent(this),
-                    PendingIntent.FLAG_CANCEL_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+              exitIntent = PendingIntent.getBroadcast(
+                this, EXIT_ACTION_ID, ExitActionReceiver.getIntent(this),
+                PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE
+              );
+            } else {
+              exitIntent = PendingIntent.getBroadcast(
+                this, EXIT_ACTION_ID, ExitActionReceiver.getIntent(this),
+                PendingIntent.FLAG_CANCEL_CURRENT
+              );
+            }
             NotificationCompat.Builder notification = new NotificationCompat.Builder(this, IDLE_NOTIFICATION_CHANNEL)
                     .setContentTitle("IRCService")
                     .setContentText(b.toString())
                     .setPriority(NotificationCompat.PRIORITY_MIN)
-                    .setOnlyAlertOnce(true)
-                    .setContentIntent(PendingIntent.getActivity(this, IDLE_NOTIFICATION_ID, mainIntent, PendingIntent.FLAG_CANCEL_CURRENT))
+                    .setOnlyAlertOnce(true);
                     .addAction(R.drawable.ic_launcher_foreground, "Exit", exitIntent);
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+              notification.setContentIntent(PendingIntent.getActivity(
+                this, IDLE_NOTIFICATION_ID, mainIntent,
+                PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE
+              ));
+            } else {
+              notification.setContentIntent(PendingIntent.getActivity(
+                this, IDLE_NOTIFICATION_ID, mainIntent, PendingIntent.FLAG_CANCEL_CURRENT
+              ));
+            }
             notification.setSmallIcon(R.drawable.ic_launcher_foreground);
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
               startForeground(IDLE_NOTIFICATION_ID, notification.build(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
