@@ -68,7 +68,7 @@ public class IRCService extends Service {
           service_thread = new Thread(() -> {
             try {
               new net.lingala.zip4j.ZipFile(APK_PATH).extractFile("lib/", FILES_DIR + "/lib");
-            } catch (net.lingala.zip4j.ZipException e) {
+            } catch (net.lingala.zip4j.exception.ZipException e) {
               e.printStackTrace();
             }
             while (service_running) {
