@@ -26,6 +26,9 @@ public class IRCService extends Service {
 
     private static final String TAG = "IRCService";
 
+    public static String APK_PATH;
+    public static String FILES_DIR;
+
     public static final int IDLE_NOTIFICATION_ID = 100;
     public static final int EXIT_ACTION_ID = 102; // 101 is taken by chat summary
     public static final String ACTION_START_FOREGROUND = "start_foreground";
@@ -53,14 +56,37 @@ public class IRCService extends Service {
         channel.setShowBadge(false);
         mgr.createNotificationChannel(channel);
     }
+    
+    Thread service_thread = null;
+    volatile boolean service_running = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        if (service_thread != null) {
+          service_running = true;
+          service_thread = new Thread(() -> {
+            new ZipFile(APK_PATH).extractFile("lib/", FILES_DIR + "/lib");
+            while (service_running) {
+              try {
+                Thread.sleep(16);
+              } catch (Exception e) {
+                e.printStackTrace();
+                continue;
+              }
+            }
+          });
+          service_thread.start();
+        }
     }
 
     @Override
     public void onDestroy() {
+        service_running = false;
+        if (service_thread != null) {
+          service_thread.join();
+          service_thread = null;
+        }
         super.onDestroy();
     }
     

@@ -47,17 +47,12 @@ android {
         jvmTarget = "17"
     }
     
-    packagingOptions {
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-    
     buildFeatures {
         viewBinding = true
         buildConfig = true
         prefab = true
     }
+
     externalNativeBuild {
         cmake {
             path = file("../../CMakeLists.txt")
@@ -71,6 +66,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.games.activity)
+    implementation(libs.zip4j)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
