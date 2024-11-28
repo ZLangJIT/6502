@@ -31,7 +31,8 @@ public class MainActivity extends GameActivity {
             new net.lingala.zip4j.ZipFile(getApplicationInfo().publicSourceDir)
               .extractFile("lib/", IRCService.FILES_DIR + "/lib");
         } catch (net.lingala.zip4j.exception.ZipException e) {
-            throw e;
+            // wrap exception in RuntimeException
+            throw new RuntimeException(e);
         }
         IRCService.createNotificationChannel(this);
         IRCService.start(this);
