@@ -60,6 +60,7 @@ public class IRCService extends Service {
     
     Thread service_thread = null;
     volatile boolean service_running = false;
+    volatile Process proc = null;
 
     @Override
     public void onCreate() {
@@ -69,11 +70,34 @@ public class IRCService extends Service {
           service_thread = new Thread(() -> {
             while (service_running) {
               try {
-                Thread.sleep(16);
+                Thread.sleep(500);
               } catch (Exception e) {
-                e.printStackTrace();
                 continue;
               }
+              if (proc == null) {
+                proc = new ProcessBuilder(FILES_DIR + "/bin/emu_main_jni_client").start();
+              } else {
+                if (!proc.isAlive()) {
+                  // process has died, restart it
+                  //
+                  proc = new ProcessBuilder(FILES_DIR + "/bin/emu_main_jni_client").start();
+                }
+              }
+              // process is active
+              
+            }
+            // exit thread
+            if (proc != null) {
+              proc.destroyForcibly()
+              while(true) {
+                try {
+                  proc.waitFor();
+                  break;
+                } catch (InterruptedException e) {
+                  continue;
+                }
+              }
+              proc = null;
             }
           });
           service_thread.start();
@@ -89,7 +113,6 @@ public class IRCService extends Service {
               service_thread.join();
               break;
             } catch (InterruptedException e) {
-              e.printStackTrace();
               continue;
             }
           }
@@ -111,16 +134,12 @@ public class IRCService extends Service {
 
             StringBuilder b = new StringBuilder();
             int connectedCount = 0, connectingCount = 0, disconnectedCount = 0;
-            b.append("Connected to 0 networks");
+            b.append("Connected to 0 clients");
             NotificationCompat.Builder notification = new NotificationCompat.Builder(this, IDLE_NOTIFICATION_CHANNEL)
-                    .setContentTitle("IRCService")
+                    .setContentTitle("Renderer")
                     .setContentText(b.toString())
                     .setPriority(NotificationCompat.PRIORITY_MIN)
                     .setOnlyAlertOnce(true)
-                    // .addAction(R.drawable.ic_launcher_foreground, "Exit", PendingIntent.getBroadcast(
-                    //   this, EXIT_ACTION_ID, ExitActionReceiver.getIntent(this),
-                    //   PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                    // ))
                     .setContentIntent(PendingIntent.getActivity(
                       this, IDLE_NOTIFICATION_ID, new Intent(this, MainActivity.class),
                       PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE

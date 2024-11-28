@@ -91,7 +91,7 @@ public class MainActivity extends GameActivity {
             if (name.startsWith("lib/" + IRCService.ARCH_LIB)) {
                 if (name.startsWith("lib/" + IRCService.ARCH_LIB + "/executable__")) {
                     String out = name.replace("lib/" + IRCService.ARCH_LIB + "/executable__", "").replace(".so", "");
-                    Log.i(TAG, "extracting executable: " + out);
+                    Log.i(TAG, "extracting executable: bin/" + out);
                     try {
                         z.extractFile(fileHeader, IRCService.FILES_DIR + "/bin", out);
                     } catch (net.lingala.zip4j.exception.ZipException e) {
@@ -99,13 +99,13 @@ public class MainActivity extends GameActivity {
                         throw new RuntimeException(e);
                     }
                     if ((new java.io.File(IRCService.FILES_DIR + "/bin/" + out).setExecutable(true, true))) {
-                        Log.i(TAG, "chmod +x " + out);
+                        Log.i(TAG, "chmod +x bin/" + out);
                     } else {
                         throw new RuntimeException("failed to chmod +x " + out);
                     }
                 } else {
                     String out = name.replace("lib/" + IRCService.ARCH_LIB + "/", "");
-                    Log.i(TAG, "extracting shared library: " + out);
+                    Log.i(TAG, "extracting shared library: lib/" + out);
                     try {
                         z.extractFile(fileHeader, IRCService.FILES_DIR + "/lib", out);
                     } catch (net.lingala.zip4j.exception.ZipException e) {
