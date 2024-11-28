@@ -24,11 +24,15 @@ public class MainActivity extends GameActivity {
     // };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) throws net.lingala.zip4j.exception.ZipException {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         IRCService.FILES_DIR = getFilesDir().getPath();
-        new net.lingala.zip4j.ZipFile(getApplicationInfo().publicSourceDir)
-          .extractFile("lib/", IRCService.FILES_DIR + "/lib");
+        try {
+            new net.lingala.zip4j.ZipFile(getApplicationInfo().publicSourceDir)
+              .extractFile("lib/", IRCService.FILES_DIR + "/lib");
+        } catch (net.lingala.zip4j.exception.ZipException e) {
+            throw e;
+        }
         IRCService.createNotificationChannel(this);
         IRCService.start(this);
         //registerReceiver(foo, new IntentFilter("app.zlangjit.broadcast.service_exit_pressed"), Context.RECEIVER_NOT_EXPORTED);
