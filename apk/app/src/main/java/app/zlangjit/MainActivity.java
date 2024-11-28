@@ -77,35 +77,37 @@ public class MainActivity extends GameActivity {
         
         String apk = getApplicationInfo().publicSourceDir;
         
-        try {
-            Log.i(TAG, "extracting apk " + IRCService.ARCH_LIB + " libs...");
-            
-            net.lingala.zip4j.ZipFile z = new net.lingala.zip4j.ZipFile(apk);
-
-            z.getFileHeaders().stream().forEach(fileHeader -> {
-              String name = fileHeader.getFileName();
-              if (name.startsWith("lib/" + IRCService.ARCH_LIB)) {
+        Log.i(TAG, "extracting apk " + IRCService.ARCH_LIB + " libs...");
+        net.lingala.zip4j.ZipFile z = new net.lingala.zip4j.ZipFile(apk);
+        z.getFileHeaders().stream().forEach(fileHeader -> {
+            String name = fileHeader.getFileName();
+            if (name.startsWith("lib/" + IRCService.ARCH_LIB)) {
                 if (name.startsWith("lib/" + IRCService.ARCH_LIB + "/executable__")) {
-                  String out = name.replace("executable__", "").replace(".so", "");
-                  Log.i(TAG, "extracting executable: " + out);
-                  z.extractFile(fileHeader, IRCService.FILES_DIR + "/bin", out);
-                  if ((new java.io.File(IRCService.FILES_DIR + "/bin/" + out).setExecutable(true, true))) {
-                    Log.i(TAG, "chmod +x " + out);
-                  } else {
-                    throw new RuntimeException("failed to chmod +x " + out);
-                  }
+                    String out = name.replace("executable__", "").replace(".so", "");
+                    Log.i(TAG, "extracting executable: " + out);
+                    try {
+                        z.extractFile(fileHeader, IRCService.FILES_DIR + "/bin", out);
+                    } catch (net.lingala.zip4j.exception.ZipException e) {
+                        // wrap exception in RuntimeException
+                        throw new RuntimeException(e);
+                    }
+                    if ((new java.io.File(IRCService.FILES_DIR + "/bin/" + out).setExecutable(true, true))) {
+                        Log.i(TAG, "chmod +x " + out);
+                    } else {
+                        throw new RuntimeException("failed to chmod +x " + out);
+                    }
                 } else {
-                  Log.i(TAG, "extracting shared library: " + name);
-                  z.extractFile(fileHeader, IRCService.FILES_DIR + "/lib");
+                    Log.i(TAG, "extracting shared library: " + name);
+                    try {
+                        z.extractFile(fileHeader, IRCService.FILES_DIR + "/lib");
+                    } catch (net.lingala.zip4j.exception.ZipException e) {
+                        // wrap exception in RuntimeException
+                        throw new RuntimeException(e);
+                    }
                 }
-              }
-            });
-
-            Log.i(TAG, "extracted apk " + IRCService.ARCH_LIB + " libs to " + IRCService.FILES_DIR);
-        } catch (net.lingala.zip4j.exception.ZipException e) {
-            // wrap exception in RuntimeException
-            throw new RuntimeException(e);
-        }
+            }
+        });
+        Log.i(TAG, "extracted apk " + IRCService.ARCH_LIB + " libs to " + IRCService.FILES_DIR);
         IRCService.createNotificationChannel(this);
         IRCService.start(this);
         //registerReceiver(foo, new IntentFilter("app.zlangjit.broadcast.service_exit_pressed"), Context.RECEIVER_NOT_EXPORTED);
