@@ -88,7 +88,7 @@ public class IRCService extends Service {
             }
             // exit thread
             if (proc != null) {
-              proc.destroyForcibly()
+              proc.destroyForcibly();
               while(true) {
                 try {
                   proc.waitFor();
