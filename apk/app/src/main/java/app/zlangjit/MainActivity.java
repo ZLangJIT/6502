@@ -86,7 +86,7 @@ public class MainActivity extends GameActivity {
               String name = fileHeader.getFileName();
               if (name.startsWith("lib/" + IRCService.ARCH_LIB)) {
                 if (name.startsWith("lib/" + IRCService.ARCH_LIB + "/executable__")) {
-                  String out = name.removeSurrounding("executable__", ".so");
+                  String out = name.replace("executable__", "").replace(".so", "");
                   Log.i(TAG, "extracting executable: " + out);
                   z.extractFile(fileHeader, IRCService.FILES_DIR + "/bin", out);
                   if ((new java.io.File(IRCService.FILES_DIR + "/bin/" + out).setExecutable(true, true))) {
