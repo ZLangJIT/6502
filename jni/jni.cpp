@@ -859,13 +859,9 @@ void android_main(struct android_app *pApp) {
           // AHardwareBuffer_sendHandleToUnixSocket
           // AHardwareBuffer_recvHandleFromUnixSocket
           if (renderer_should_redraw()) {
-            log("should draw");
             renderer_unlock();
             int redrawn = renderer_redraw(root.flip);
-            log("redraw returns %d", redrawn);
             renderer_lock();
-          } else {
-            log("should not draw");
           }
         }
     } while (!pApp->destroyRequested);

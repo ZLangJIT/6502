@@ -27,6 +27,8 @@ public class IRCService extends Service {
     private static final String TAG = "IRCService";
 
     public static String FILES_DIR;
+    public static String ARCH_LIB;
+    public static String ARCH_NAME;
 
     public static final int IDLE_NOTIFICATION_ID = 100;
     public static final int EXIT_ACTION_ID = 102; // 101 is taken by chat summary
