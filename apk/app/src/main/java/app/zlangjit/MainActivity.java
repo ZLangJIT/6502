@@ -79,7 +79,14 @@ public class MainActivity extends GameActivity {
         
         Log.i(TAG, "extracting apk " + IRCService.ARCH_LIB + " libs...");
         net.lingala.zip4j.ZipFile z = new net.lingala.zip4j.ZipFile(apk);
-        z.getFileHeaders().stream().forEach(fileHeader -> {
+        List<net.lingala.zip4j.FileHeader> headers = null;
+        try {
+            headers = z.getFileHeaders();
+        } catch (net.lingala.zip4j.exception.ZipException e) {
+            // wrap exception in RuntimeException
+            throw new RuntimeException(e);
+        }
+        headers.stream().forEach(fileHeader -> {
             String name = fileHeader.getFileName();
             if (name.startsWith("lib/" + IRCService.ARCH_LIB)) {
                 if (name.startsWith("lib/" + IRCService.ARCH_LIB + "/executable__")) {
