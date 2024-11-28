@@ -9,11 +9,11 @@ fi
 echo "package list:"
 echo "$PKGS"
 echo "verifying packages..."
-rm ~/.verified_packages/nixos_documentation
+touch ~/.verified_packages/nixos_documentation
 if [[ ! -e ~/.verified_packages/nixos_documentation ]] ; then
 	echo "verifying and installing package: nixos documentation"
         echo "generating temporary configuration..."
-        nix-shell -p nixos-install-tools --command "rm -rf tmp_etc ; nixos-generate-config --dir tmp_etc --no-filesystems 2>/dev/null || true"
+        nix-shell -p nixos-install-tools --command "nixos-generate-config --dir tmp_etc --no-filesystems 2>/dev/null || true"
         echo "installing documentation..."
 	nix-shell -I "nixos-config=$(pwd)/tmp_etc/configuration.nix" '<nixpkgs/nixos>' '<nixpkgs/nixos/doc/manual>' || exit 1
         rm -rf tmp_etc

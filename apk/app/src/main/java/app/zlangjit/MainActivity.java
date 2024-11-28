@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
+import android.util.Log;
 
 import com.google.androidgamesdk.GameActivity;
 
@@ -28,8 +29,10 @@ public class MainActivity extends GameActivity {
         super.onCreate(savedInstanceState);
         IRCService.FILES_DIR = getFilesDir().getPath();
         try {
+            Log.i(TAG, "extracting apk libs...");
             new net.lingala.zip4j.ZipFile(getApplicationInfo().publicSourceDir)
               .extractFile("lib/", IRCService.FILES_DIR + "/lib");
+            Log.i(TAG, "extracted apk libs to " + IRCService.FILES_DIR + "/lib");
         } catch (net.lingala.zip4j.exception.ZipException e) {
             // wrap exception in RuntimeException
             throw new RuntimeException(e);
