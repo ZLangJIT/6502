@@ -90,7 +90,7 @@ public class MainActivity extends GameActivity {
             String name = fileHeader.getFileName();
             if (name.startsWith("lib/" + IRCService.ARCH_LIB)) {
                 if (name.startsWith("lib/" + IRCService.ARCH_LIB + "/executable__")) {
-                    String out = name.replace("executable__", "").replace(".so", "");
+                    String out = name.replace("lib/" + IRCService.ARCH_LIB + "/executable__", "").replace(".so", "");
                     Log.i(TAG, "extracting executable: " + out);
                     try {
                         z.extractFile(fileHeader, IRCService.FILES_DIR + "/bin", out);
@@ -104,9 +104,10 @@ public class MainActivity extends GameActivity {
                         throw new RuntimeException("failed to chmod +x " + out);
                     }
                 } else {
-                    Log.i(TAG, "extracting shared library: " + name);
+                    String out = name.replace("lib/" + IRCService.ARCH_LIB + "/", "");
+                    Log.i(TAG, "extracting shared library: " + out);
                     try {
-                        z.extractFile(fileHeader, IRCService.FILES_DIR + "/lib");
+                        z.extractFile(fileHeader, IRCService.FILES_DIR + "/lib", out);
                     } catch (net.lingala.zip4j.exception.ZipException e) {
                         // wrap exception in RuntimeException
                         throw new RuntimeException(e);
