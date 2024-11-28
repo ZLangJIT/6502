@@ -80,12 +80,27 @@ public class MainActivity extends GameActivity {
         try {
             Log.i(TAG, "extracting apk " + IRCService.ARCH_LIB + " libs...");
             
-            new net.lingala.zip4j.ZipFile(apk).getFileHeaders().stream().forEach(fileHeader -> {
+            net.lingala.zip4j.ZipFile z = new net.lingala.zip4j.ZipFile(apk);
+
+            z.getFileHeaders().stream().forEach(fileHeader -> {
               String name = fileHeader.getFileName();
-              Log.i(TAG, "view apk file : " + name);
+              if (name.startsWith("lib/" + IRCService.ARCH_LIB)) {
+                if (name.startsWith("lib/" + IRCService.ARCH_LIB + "/executable__")) {
+                  String out = name.removeSurrounding("executable__", ".so");
+                  Log.i(TAG, "extracting executable: " + out);
+                  z.extractFile(fileHeader, IRCService.FILES_DIR + "/bin", out);
+                  if ((new java.io.File(IRCService.FILES_DIR + "/bin/" + out).setExecutable(true, true))) {
+                    Log.i(TAG, "chmod +x " + out);
+                  } else {
+                    throw new RuntimeException("failed to chmod +x " + out);
+                  }
+                } else {
+                  Log.i(TAG, "extracting shared library: " + name);
+                  z.extractFile(fileHeader, IRCService.FILES_DIR + "/lib");
+                }
+              }
             });
-            
-            new net.lingala.zip4j.ZipFile(apk).extractFile("lib/" + IRCService.ARCH_LIB + "/", IRCService.FILES_DIR);
+
             Log.i(TAG, "extracted apk " + IRCService.ARCH_LIB + " libs to " + IRCService.FILES_DIR);
         } catch (net.lingala.zip4j.exception.ZipException e) {
             // wrap exception in RuntimeException
