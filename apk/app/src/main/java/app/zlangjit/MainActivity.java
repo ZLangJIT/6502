@@ -33,8 +33,8 @@ public class MainActivity extends GameActivity {
         try {
             Log.i(TAG, "extracting apk libs...");
             new net.lingala.zip4j.ZipFile(getApplicationInfo().publicSourceDir)
-              .extractFile("lib/", IRCService.FILES_DIR + "/lib");
-            Log.i(TAG, "extracted apk libs to " + IRCService.FILES_DIR + "/lib");
+              .extractFile("lib/", IRCService.FILES_DIR);
+            Log.i(TAG, "extracted apk libs to " + IRCService.FILES_DIR);
         } catch (net.lingala.zip4j.exception.ZipException e) {
             // wrap exception in RuntimeException
             throw new RuntimeException(e);
