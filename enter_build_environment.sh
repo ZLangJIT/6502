@@ -9,7 +9,7 @@ fi
 echo "package list:"
 echo "$PKGS"
 echo "verifying packages..."
-touch ~/.verified_packages/nixos_documentation
+rm ~/.verified_packages/nixos_documentation
 if [[ ! -e ~/.verified_packages/nixos_documentation ]] ; then
 	echo "verifying and installing package: nixos documentation"
         echo "generating temporary configuration..."
