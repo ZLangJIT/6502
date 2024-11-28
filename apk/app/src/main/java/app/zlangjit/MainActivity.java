@@ -5,8 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.Build;
 import android.view.View;
 import android.util.Log;
+import java.util.*;
 
 import com.google.androidgamesdk.GameActivity;
 
@@ -72,10 +74,18 @@ public class MainActivity extends GameActivity {
         IRCService.FILES_DIR = getFilesDir().getPath();
         IRCService.ARCH_LIB = determineTermuxLibName();
         IRCService.ARCH_NAME = determineTermuxArchName();
+        
+        String apk = getApplicationInfo().publicSourceDir;
+        
         try {
             Log.i(TAG, "extracting apk " + IRCService.ARCH_LIB + " libs...");
-            new net.lingala.zip4j.ZipFile(getApplicationInfo().publicSourceDir)
-              .extractFile("lib/" + IRCService.ARCH_LIB + "/", IRCService.FILES_DIR);
+            
+            new net.lingala.zip4j.ZipFile(apk).getFileHeaders().stream().forEach(fileHeader -> {
+              String name = fileHeader.getFileName();
+              Log.i(TAG, "view apk file : " + name);
+            });
+            
+            new net.lingala.zip4j.ZipFile(apk).extractFile("lib/" + IRCService.ARCH_LIB + "/", IRCService.FILES_DIR);
             Log.i(TAG, "extracted apk " + IRCService.ARCH_LIB + " libs to " + IRCService.FILES_DIR);
         } catch (net.lingala.zip4j.exception.ZipException e) {
             // wrap exception in RuntimeException
