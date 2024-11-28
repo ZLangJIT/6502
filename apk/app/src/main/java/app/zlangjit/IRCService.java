@@ -75,12 +75,22 @@ public class IRCService extends Service {
                 continue;
               }
               if (proc == null) {
-                proc = new ProcessBuilder(FILES_DIR + "/bin/emu_main_jni_client").start();
+                try {
+                  proc = new ProcessBuilder(FILES_DIR + "/bin/emu_main_jni_client").start();
+                } catch (Exception e) {
+                  e.printStackTrace();
+                  continue;
+                }
               } else {
                 if (!proc.isAlive()) {
                   // process has died, restart it
                   //
-                  proc = new ProcessBuilder(FILES_DIR + "/bin/emu_main_jni_client").start();
+                  try {
+                    proc = new ProcessBuilder(FILES_DIR + "/bin/emu_main_jni_client").start();
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                    continue;
+                  }
                 }
               }
               // process is active
