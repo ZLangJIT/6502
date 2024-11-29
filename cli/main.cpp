@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include <vector>
+
 #define EGL_EGLEXT_PROTOTYPES
 #define GL_GLEXT_PROTOTYPES
 
@@ -101,8 +103,6 @@ void checkGlError(int line) {
 
 #define checkGlError() checkGlError(__LINE__)
 #define eglCheckError() eglCheckError(__LINE__)
-
-#include <vector>
 
 class dep {
   std::vector<dep*> deps;

@@ -10,7 +10,7 @@ project(lib_6502)
 
 add_subdirectory(vrEmu6502)
 add_subdirectory(src)
-if (ANDROID)
+if (ANDROID AND NOT TERMUX)
   add_subdirectory(jni)
 else()
   add_subdirectory(cli)
