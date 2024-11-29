@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #define EGL_EGLEXT_PROTOTYPES
 #define GL_GLEXT_PROTOTYPES
 
@@ -7,20 +5,14 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-#if ANDROID
+
 #include <android/native_window_jni.h>
 #include <android/log.h>
+
 #include <android/hardware_buffer.h>
 
 #define log(...) __android_log_print(ANDROID_LOG_DEBUG, "gles-renderer", __VA_ARGS__)
 #define loge(...) __android_log_print(ANDROID_LOG_ERROR, "gles-renderer", __VA_ARGS__)
-
-#else
-
-#define log(...) printf(__VA_ARGS__)
-#define loge(...) printf(__VA_ARGS__)
-
-#endif
 
 int eglCheckError(int line) {
     char* desc;
@@ -146,14 +138,9 @@ struct egl_display : public dep {
       log("EGL: Got no EGL display.\n");
       eglCheckError();
     }
+    log("EGL: Got a valid EGL display.\n");
   }
   void onDestroy() override {
     egl_display = EGL_NO_DISPLAY;
   }
 };
-
-int main(int argc, char* argv[]) {
-  egl_display display;
-  component_rebuild(display);
-  return 0;
-}

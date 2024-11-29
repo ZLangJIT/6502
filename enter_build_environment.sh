@@ -1,4 +1,4 @@
-PKGS="zip unzip wget htop nix-info rvvm spike dtc qemu-utils which radare2 unicorn unicorn-emu valgrind clang_18 clang-tools_18 llvm-manpages clang-manpages radare2-cutter coreutils-full man-db man-pages man-pages-posix nano gcc qemu_full cmake ninja cppreference-doc re2 re2c linenoise gitFull git-credential-oauth procps ps tree-sitter github-cli git-hub nanorc bash-completion"
+PKGS="nix-index nix-tree nix-info nix-bundle mesa mesa_drivers mesa_glu mesa-demos libGL eglexternalplatform python312Packages.jinja2 python312Packages.babel zip unzip wget htop nix-info rvvm spike dtc qemu-utils which radare2 unicorn unicorn-emu valgrind clang_18 clang-tools_18 llvm-manpages clang-manpages radare2-cutter coreutils-full man-db man-pages man-pages-posix nano gcc qemu_full cmake ninja cppreference-doc re2 re2c linenoise gitFull git-credential-oauth procps ps tree-sitter github-cli git-hub nanorc bash-completion"
 if [[ ! -e profile.sh ]] ; then
 	echo "please execute me from repository root"
 	exit 1
@@ -18,6 +18,7 @@ if [[ ! -e ~/.verified_packages/nixos_documentation ]] ; then
 	nix-shell -I "nixos-config=$(pwd)/tmp_etc/configuration.nix" '<nixpkgs/nixos>' '<nixpkgs/nixos/doc/manual>' || exit 1
         rm -rf tmp_etc
 	touch ~/.verified_packages/nixos_documentation
+        echo
 fi
 for pkg in $PKGS ; do
 	if [[ ! -e ~/.verified_packages/$pkg ]] ; then
@@ -28,6 +29,7 @@ for pkg in $PKGS ; do
 		touch ~/.verified_packages/$pkg
                 unset NIXPKGS_ACCEPT_ANDROID_SDK_LICENSE
                 unset NIXPKGS_ALLOW_UNFREE
+                echo
 	fi
 done
 echo "verified all packages"
