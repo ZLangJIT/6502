@@ -16,7 +16,5 @@ endif()
 
 target_include_directories(vrEmu6502 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if (NOT ANDROID)
-  install(FILES vrEmu6502.h DESTINATION include)
-  install(TARGETS vrEmu6502 DESTINATION lib)
-endif()
+install(FILES vrEmu6502.h DESTINATION include)
+install(TARGETS vrEmu6502 DESTINATION lib)

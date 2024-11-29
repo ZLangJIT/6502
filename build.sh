@@ -20,4 +20,4 @@ fi
 cmake --build build
 cmake --install build --prefix=$(pwd)/build/install
 echo "built"
-ls -l --color build/{install,install/*}
+#ls -l --color build/{install,install/*}
