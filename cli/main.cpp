@@ -475,7 +475,7 @@ main(int argc, char *argv[])
    clientext = PrintDisplayExtensions(EGL_NO_DISPLAY);
    printf("\n");
 
-   if (strstr(clientext, "EGL_EXT_platform_base")) {
+   if (strstr(clientext, "EGL_EXT_platform_base") || strstr(clientext, "EGL_ANGLE_platform_angle")) {
        PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplay =
            (PFNEGLGETPLATFORMDISPLAYEXTPROC)
            eglGetProcAddress("eglGetPlatformDisplayEXT");
