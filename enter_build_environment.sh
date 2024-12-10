@@ -1,4 +1,4 @@
-PKGS="nix-index nix-tree nix-info nix-bundle mesa.osmesa mesa_glu mesa_drivers mesa-demos libGL eglexternalplatform python312Packages.jinja2 python312Packages.babel zip unzip wget htop nix-info rvvm spike dtc qemu-utils which radare2 unicorn unicorn-emu valgrind clang_18 clang-tools_18 llvm-manpages clang-manpages radare2-cutter coreutils-full man-db man-pages man-pages-posix nano gcc qemu_full cmake ninja cppreference-doc re2 re2c linenoise gitFull git-credential-oauth procps ps tree-sitter github-cli git-hub nanorc bash-completion"
+PKGS="lldb_18 nix-index nix-tree nix-info nix-bundle mesa.osmesa mesa_glu mesa_drivers mesa-demos libGL eglexternalplatform python312Packages.jinja2 python312Packages.babel zip unzip wget htop nix-info rvvm spike dtc qemu-utils which radare2 unicorn unicorn-emu valgrind clang_18 clang-tools_18 llvm-manpages clang-manpages radare2-cutter coreutils-full man-db man-pages man-pages-posix nano gcc qemu_full cmake ninja cppreference-doc re2 re2c linenoise gitFull git-credential-oauth procps ps tree-sitter github-cli git-hub nanorc bash-completion"
 if [[ ! -e profile.sh ]] ; then
 	echo "please execute me from repository root"
 	exit 1
@@ -25,16 +25,20 @@ for pkg in $PKGS ; do
 		echo "verifying and installing package: $pkg"
                 export NIXPKGS_ACCEPT_ANDROID_SDK_LICENSE=1
                 export NIXPKGS_ALLOW_UNFREE=1
-		nix-shell --dry-run --command "exit 0" -p $pkg || exit 1
+		export NIXPKGS_ALLOW_INSECURE=1
+		nix-shell --command "exit 0" -p $pkg || exit 1
 		touch ~/.verified_packages/$pkg
                 unset NIXPKGS_ACCEPT_ANDROID_SDK_LICENSE
                 unset NIXPKGS_ALLOW_UNFREE
+                unset NIXPKGS_ALLOW_INSECURE
                 echo
 	fi
 done
 echo "verified all packages"
 echo "entering shell..."
+export NIXPKGS_ALLOW_INSECURE=1
 nix --extra-experimental-features "nix-command flakes" run --impure github:nix-community/nixGL -- nix-shell --command ". profile.sh ; return" -p $PKGS
+unset NIXPKGS_ALLOW_INSECURE
 echo "exiting shell layer 1"
 #echo "collecting garbage..."
 #nix-collect-garbage --quiet
