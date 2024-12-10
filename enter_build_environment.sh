@@ -25,7 +25,7 @@ for pkg in $PKGS ; do
 		echo "verifying and installing package: $pkg"
                 export NIXPKGS_ACCEPT_ANDROID_SDK_LICENSE=1
                 export NIXPKGS_ALLOW_UNFREE=1
-		nix-shell --command "exit 0" -p $pkg || exit 1
+		nix-shell --dry-run --command "exit 0" -p $pkg || exit 1
 		touch ~/.verified_packages/$pkg
                 unset NIXPKGS_ACCEPT_ANDROID_SDK_LICENSE
                 unset NIXPKGS_ALLOW_UNFREE

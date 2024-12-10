@@ -4,17 +4,17 @@ project("emu_main_jni")
 
 add_library(emu_main_jni SHARED
 	jni.cpp
-        game/Pong.cpp
+        #game/Pong.cpp
         #game/Cube3D.cpp
-        base/RBGame.cpp
-        base/RBGameObject.cpp
-        base/RBColor.cpp
-        base/RBRenderHelper.cpp
-        base/RBRenderer.cpp
-        base/RBShader.cpp
-        base/RBClock.cpp
-        base/RBMath.cpp
-        base/RBLog.cpp
+        #base/RBGame.cpp
+        #base/RBGameObject.cpp
+        #base/RBColor.cpp
+        #base/RBRenderHelper.cpp
+        #base/RBRenderer.cpp
+        #base/RBShader.cpp
+        #base/RBClock.cpp
+        #base/RBMath.cpp
+        #base/RBLog.cpp
 )
 
 target_include_directories(emu_main_jni PRIVATE game base)
