@@ -8,6 +8,9 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
   echo "Android detected"
   if [[ -d /data/data/com.termux/files/usr ]] ; then
     echo "Termux shell detected"
+    apt update
+    apt upgrade
+    apt install cmake clang mesa-dev
     cmake -DCMAKE_BUILD_TYPE=Release -DTERMUX=1 -S . -B build
   else
     echo "Non-Termux shell detected"
