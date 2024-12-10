@@ -201,6 +201,8 @@ struct egl_display : public dep {
      return PrintExtensions(extensions);
   }
 
+  EGLDisplay egl_display = EGL_NO_DISPLAY;
+
   int
   doOneDisplay(EGLDisplay d, const char *name)
   {
@@ -220,14 +222,13 @@ struct egl_display : public dep {
   #endif
   
      PrintDisplayExtensions(d);
-  
+     
      //PrintConfigs(d);
-     eglTerminate(d);
      printf("\n");
+     egl_display = d;
      return 0;
   }
 
-  EGLDisplay egl_display = EGL_NO_DISPLAY;
   void onBuild() override {
    int ret = 0;
    const char *clientext;
@@ -240,34 +241,35 @@ struct egl_display : public dep {
            (PFNEGLGETPLATFORMDISPLAYEXTPROC)
            eglGetProcAddress("eglGetPlatformDisplayEXT");
        if (strstr(clientext, "EGL_KHR_platform_android"))
-           ret += doOneDisplay(getPlatformDisplay(EGL_PLATFORM_ANDROID_KHR,
+           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_ANDROID_KHR,
                                                   EGL_DEFAULT_DISPLAY,
-                                                  NULL), "Android platform");
+                                                  NULL), "Android platform")) return;
        if (strstr(clientext, "EGL_MESA_platform_gbm") ||
            strstr(clientext, "EGL_KHR_platform_gbm"))
-           ret += doOneDisplay(getPlatformDisplay(EGL_PLATFORM_GBM_MESA,
+           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_GBM_MESA,
                                                   EGL_DEFAULT_DISPLAY,
-                                                  NULL), "GBM platform");
+                                                  NULL), "GBM platform")) return;
        if (strstr(clientext, "EGL_EXT_platform_wayland") ||
            strstr(clientext, "EGL_KHR_platform_wayland"))
-           ret += doOneDisplay(getPlatformDisplay(EGL_PLATFORM_WAYLAND_EXT,
+           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_WAYLAND_EXT,
                                                   EGL_DEFAULT_DISPLAY,
-                                                  NULL), "Wayland platform");
+                                                  NULL), "Wayland platform")) return;
        if (strstr(clientext, "EGL_EXT_platform_x11") ||
            strstr(clientext, "EGL_KHR_platform_x11"))
-           ret += doOneDisplay(getPlatformDisplay(EGL_PLATFORM_X11_EXT,
+           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_X11_EXT,
                                                   EGL_DEFAULT_DISPLAY,
-                                                  NULL), "X11 platform");
+                                                  NULL), "X11 platform")) return;
        if (strstr(clientext, "EGL_MESA_platform_surfaceless"))
-           ret += doOneDisplay(getPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA,
+           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA,
                                                   EGL_DEFAULT_DISPLAY,
-                                                  NULL), "Surfaceless platform");
+                                                  NULL), "Surfaceless platform")) return;
    }
    else {
-      ret = doOneDisplay(eglGetDisplay(EGL_DEFAULT_DISPLAY), "Default display");
+      if (doOneDisplay(eglGetDisplay(EGL_DEFAULT_DISPLAY), "Default display")) return;
    }
   }
   void onDestroy() override {
+    if (egl_display != EGL_NO_DISPLAY) eglTerminate(egl_display);
     egl_display = EGL_NO_DISPLAY;
   }
 };
@@ -283,7 +285,6 @@ struct egl_initialize : public dep {
     }
   }
   void onDestroy() override {
-    eglTerminate(display.egl_display);
     major = 0;
     minor = 0;
     component_destroy(display);
