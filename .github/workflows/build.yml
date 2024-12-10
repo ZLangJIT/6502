@@ -125,8 +125,11 @@ jobs:
           cd apk
           ./gradlew --help || true
 
-      - name: Build gradle project
-        run: cd apk ; ./gradlew --no-daemon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel build
+      - name: Build gradle project - rich
+        run: cd apk ; ./gradlew --no-daemon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel --console=rich build
+
+      - name: Build gradle project - plain
+        run: cd apk ; ./gradlew --no-daemon --no-configure-on-demand --info --configuration-cache --build-cache --max-workers=1 -Dorg.gradle.parallel=false --no-parallel --console=plain build
 
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
         run: cd apk ; ./gradlew assembleDebug
