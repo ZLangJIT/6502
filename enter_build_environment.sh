@@ -1,4 +1,4 @@
-PKGS="nix-index nix-tree nix-info nix-bundle mesa mesa_drivers mesa_glu mesa-demos libGL eglexternalplatform python312Packages.jinja2 python312Packages.babel zip unzip wget htop nix-info rvvm spike dtc qemu-utils which radare2 unicorn unicorn-emu valgrind clang_18 clang-tools_18 llvm-manpages clang-manpages radare2-cutter coreutils-full man-db man-pages man-pages-posix nano gcc qemu_full cmake ninja cppreference-doc re2 re2c linenoise gitFull git-credential-oauth procps ps tree-sitter github-cli git-hub nanorc bash-completion"
+PKGS="nix-index nix-tree nix-info nix-bundle mesa.osmesa mesa_glu mesa_drivers mesa-demos libGL eglexternalplatform python312Packages.jinja2 python312Packages.babel zip unzip wget htop nix-info rvvm spike dtc qemu-utils which radare2 unicorn unicorn-emu valgrind clang_18 clang-tools_18 llvm-manpages clang-manpages radare2-cutter coreutils-full man-db man-pages man-pages-posix nano gcc qemu_full cmake ninja cppreference-doc re2 re2c linenoise gitFull git-credential-oauth procps ps tree-sitter github-cli git-hub nanorc bash-completion"
 if [[ ! -e profile.sh ]] ; then
 	echo "please execute me from repository root"
 	exit 1
@@ -34,7 +34,7 @@ for pkg in $PKGS ; do
 done
 echo "verified all packages"
 echo "entering shell..."
-nix-shell --command ". profile.sh ; return" -p $PKGS
+nix --extra-experimental-features "nix-command flakes" run --impure github:nix-community/nixGL -- nix-shell --command ". profile.sh ; return" -p $PKGS
 echo "exiting shell layer 1"
 #echo "collecting garbage..."
 #nix-collect-garbage --quiet
