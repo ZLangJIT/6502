@@ -25,7 +25,7 @@
 
 #endif
 
-int eglCheckError(int line) {
+int eglCheckError(const char * file, int line) {
     char* desc;
     int err = eglGetError();
     switch(err) {
@@ -50,7 +50,7 @@ int eglCheckError(int line) {
     }
 
     if (desc)
-        log("Xlorie: egl error on line %d: %s\n", line, desc);
+        log("EGL: %s:%d ERROR: %s.\n", file, line, desc);
 
     return err;
 }
@@ -79,9 +79,9 @@ const char* eglErrorLabel(int code) {
 
 }
 
-#define eglCheckError() eglCheckError(__LINE__)
+#define eglCheckError() eglCheckError(__FILE__, __LINE__)
 
-// void checkGlError(int line) {
+// void checkGlError(const char * file, int line) {
 //     GLenum error;
 //     char *desc = nullptr;
 //     for (error = glGetError(); error; error = glGetError()) {
@@ -99,12 +99,12 @@ const char* eglErrorLabel(int code) {
 //                 continue;
 // #undef E
 //         }
-//         log("Xlorie: GLES %d ERROR: %s.\n", line, desc);
+//         log("GLES: %s:%d ERROR: %s.\n", file, line, desc);
 //         return;
 //     }
 // }
 
-// #define checkGlError() checkGlError(__LINE__)
+// #define checkGlError() checkGlError(FILE, __LINE__)
 
 class dep {
   std::vector<dep*> deps;
@@ -201,100 +201,96 @@ struct egl_display : public dep {
      return PrintExtensions(extensions);
   }
 
+  int maj, min;
   EGLDisplay egl_display = EGL_NO_DISPLAY;
 
   bool
   doOneDisplay(EGLDisplay d, const char *name)
   {
-     int maj, min;
   
-     printf("%s:\n", name);
-     if (!eglInitialize(d, &maj, &min)) {
-        printf("eglinfo: eglInitialize failed\n\n");
-        return false;
-     }
+    printf("%s:\n", name);
+    if (eglInitialize(d, &maj, &min) != EGL_TRUE) {
+      eglCheckError();
+      eglCheckError();
+      return false;
+    }
+    eglCheckError();
+    eglCheckError();
   
-     printf("EGL API version: %d.%d\n", maj, min);
-     printf("EGL vendor string: %s\n", eglQueryString(d, EGL_VENDOR));
-     printf("EGL version string: %s\n", eglQueryString(d, EGL_VERSION));
+    printf("EGL API version: %d.%d\n", maj, min);
+    printf("EGL vendor string: %s\n", eglQueryString(d, EGL_VENDOR));
+    printf("EGL version string: %s\n", eglQueryString(d, EGL_VERSION));
   #ifdef EGL_VERSION_1_2
-     printf("EGL client APIs: %s\n", eglQueryString(d, EGL_CLIENT_APIS));
+    printf("EGL client APIs: %s\n", eglQueryString(d, EGL_CLIENT_APIS));
   #endif
   
-     PrintDisplayExtensions(d);
+    PrintDisplayExtensions(d);
      
-     //PrintConfigs(d);
-     printf("\n");
-     egl_display = d;
-     return true;
+    //PrintConfigs(d);
+    printf("\n");
+    egl_display = d;
+    return true;
   }
 
   void onBuild() override {
-   int ret = 0;
-   const char *clientext;
+    int ret = 0;
+    const char *clientext;
 
-   clientext = PrintDisplayExtensions(EGL_NO_DISPLAY);
-   printf("\n");
+    clientext = PrintDisplayExtensions(EGL_NO_DISPLAY);
+    printf("\n");
 
-   if (strstr(clientext, "EGL_EXT_platform_base")) {
-       PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplay =
-           (PFNEGLGETPLATFORMDISPLAYEXTPROC)
-           eglGetProcAddress("eglGetPlatformDisplayEXT");
-       if (strstr(clientext, "EGL_KHR_platform_android"))
-           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_ANDROID_KHR,
-                                                  EGL_DEFAULT_DISPLAY,
-                                                  NULL), "Android platform")) return;
-       if (strstr(clientext, "EGL_MESA_platform_gbm") ||
-           strstr(clientext, "EGL_KHR_platform_gbm"))
-           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_GBM_MESA,
-                                                  EGL_DEFAULT_DISPLAY,
-                                                  NULL), "GBM platform")) return;
-       if (strstr(clientext, "EGL_EXT_platform_wayland") ||
-           strstr(clientext, "EGL_KHR_platform_wayland"))
-           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_WAYLAND_EXT,
-                                                  EGL_DEFAULT_DISPLAY,
-                                                  NULL), "Wayland platform")) return;
-       if (strstr(clientext, "EGL_EXT_platform_x11") ||
-           strstr(clientext, "EGL_KHR_platform_x11"))
-           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_X11_EXT,
-                                                  EGL_DEFAULT_DISPLAY,
-                                                  NULL), "X11 platform")) return;
-       if (strstr(clientext, "EGL_MESA_platform_surfaceless"))
-           if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA,
-                                                  EGL_DEFAULT_DISPLAY,
-                                                  NULL), "Surfaceless platform")) return;
-   }
-   else {
-      if (doOneDisplay(eglGetDisplay(EGL_DEFAULT_DISPLAY), "Default display")) return;
-   }
+    if (strstr(clientext, "EGL_EXT_platform_base")) {
+      PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplay = (PFNEGLGETPLATFORMDISPLAYEXTPROC) eglGetProcAddress("eglGetPlatformDisplayEXT");
+      if (strstr(clientext, "EGL_KHR_platform_android"))
+        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_ANDROID_KHR, EGL_DEFAULT_DISPLAY, NULL), "Android platform"))
+          return;
+      if (strstr(clientext, "EGL_MESA_platform_gbm") || strstr(clientext, "EGL_KHR_platform_gbm"))
+        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_GBM_MESA, EGL_DEFAULT_DISPLAY, NULL), "GBM platform"))
+          return;
+      if (strstr(clientext, "EGL_EXT_platform_wayland") || strstr(clientext, "EGL_KHR_platform_wayland"))
+        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_WAYLAND_EXT, EGL_DEFAULT_DISPLAY, NULL), "Wayland platform"))
+          return;
+      if (strstr(clientext, "EGL_EXT_platform_x11") || strstr(clientext, "EGL_KHR_platform_x11"))
+        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_X11_EXT, EGL_DEFAULT_DISPLAY, NULL), "X11 platform"))
+          return;
+      if (strstr(clientext, "EGL_MESA_platform_surfaceless"))
+        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA, EGL_DEFAULT_DISPLAY, NULL), "Surfaceless platform"))
+          return;
+    } else {
+      if (doOneDisplay(eglGetDisplay(EGL_DEFAULT_DISPLAY), "Default display"))
+        return;
+    }
   }
   void onDestroy() override {
-    if (egl_display != EGL_NO_DISPLAY) eglTerminate(egl_display);
-    egl_display = EGL_NO_DISPLAY;
+    if (egl_display != EGL_NO_DISPLAY) {
+      eglTerminate(egl_display);
+      eglCheckError();
+      egl_display = EGL_NO_DISPLAY;
+      min = 0;
+      maj = 0;
+    }
   }
 };
 
-struct egl_initialize : public dep {
+struct egl_context : public dep {
   egl_display display;
   EGLint major, minor;
   void onBuild() override {
     component_build(display);
-    if (eglInitialize(display.egl_display, &major, &minor) != EGL_TRUE) {
-        log("EGL: Unable to initialize EGL\n");
-        eglCheckError();
-    }
+    eglCheckError();
+    eglMakeCurrent(display.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglCheckError();
   }
   void onDestroy() override {
-    major = 0;
-    minor = 0;
+    eglMakeCurrent(display.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglCheckError();
     component_destroy(display);
   }
 };
 
 int main(int argc, char* argv[]) {
-  egl_display display;
-  egl_initialize initialize;
-  component_rebuild(display);
-  component_rebuild(initialize);
+  egl_context context;
+  component_rebuild(context);
+  component_rebuild(context);
   return 0;
 }
