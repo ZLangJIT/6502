@@ -203,7 +203,7 @@ struct egl_display : public dep {
 
   EGLDisplay egl_display = EGL_NO_DISPLAY;
 
-  int
+  bool
   doOneDisplay(EGLDisplay d, const char *name)
   {
      int maj, min;
@@ -211,7 +211,7 @@ struct egl_display : public dep {
      printf("%s:\n", name);
      if (!eglInitialize(d, &maj, &min)) {
         printf("eglinfo: eglInitialize failed\n\n");
-        return 1;
+        return false;
      }
   
      printf("EGL API version: %d.%d\n", maj, min);
@@ -226,7 +226,7 @@ struct egl_display : public dep {
      //PrintConfigs(d);
      printf("\n");
      egl_display = d;
-     return 0;
+     return true;
   }
 
   void onBuild() override {
