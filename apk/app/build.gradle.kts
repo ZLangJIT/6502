@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "app.zlangjit"
     compileSdk = 34
-    buildToolsVersion = "34.0.4"
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "app.zlangjit"
