@@ -9,6 +9,7 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#include <cstring>
 #if ANDROID
 #include <android/native_window_jni.h>
 #include <android/log.h>
@@ -220,7 +221,7 @@ struct egl_display : public dep {
   
      PrintDisplayExtensions(d);
   
-     PrintConfigs(d);
+     //PrintConfigs(d);
      eglTerminate(d);
      printf("\n");
      return 0;
