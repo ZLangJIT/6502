@@ -176,7 +176,6 @@ struct egl_display : public dep {
      return extensions;
   }
   
-  
   const char *
   PrintDisplayExtensions(EGLDisplay d)
   {
@@ -195,8 +194,7 @@ struct egl_display : public dep {
      }
   #endif
   
-     puts(d == EGL_NO_DISPLAY ? "EGL client extensions string:" :
-                                "EGL extensions string:");
+     puts(d == EGL_NO_DISPLAY ? "EGL client extensions string:" : "EGL extensions string:");
   
      return PrintExtensions(extensions);
   }
@@ -211,10 +209,8 @@ struct egl_display : public dep {
     printf("%s:\n", name);
     if (eglInitialize(d, &maj, &min) != EGL_TRUE) {
       eglCheckError();
-      eglCheckError();
       return false;
     }
-    eglCheckError();
     eglCheckError();
   
     printf("EGL API version: %d.%d\n", maj, min);
@@ -289,8 +285,10 @@ struct egl_context : public dep {
 };
 
 int main(int argc, char* argv[]) {
-  egl_context context;
-  component_rebuild(context);
-  component_rebuild(context);
+  eglCheckError();
   return 0;
+  // egl_context context;
+  // component_rebuild(context);
+  // component_rebuild(context);
+  // return 0;
 }
