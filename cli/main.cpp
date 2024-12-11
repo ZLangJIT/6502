@@ -494,7 +494,7 @@ int main(int argc, char* argv[]) {
             glCheckError(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
             glCheckError(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0));
             uint32_t pixel[64*64];
-            glCheckError(glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel);
+            glCheckError(glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel));
             if (pixel[0] == 0xAABBCCDD) {
                 LOG_ERROR("GLES: GLES draws pixels unchanged, probably system does not support AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM. Forcing bgra.\n");
                 //*flip = 1;
