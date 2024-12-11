@@ -9,7 +9,7 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-#if ANDROID
+#if __ANDROID__
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <android/hardware_buffer.h>
