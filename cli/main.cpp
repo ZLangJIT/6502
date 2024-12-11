@@ -147,9 +147,13 @@ bool os_gl_LOG_PRINT_NON_ERRORS = false;
 EGLint os_egl_error = EGL_SUCCESS;
 GLint os_gl_error = GL_NO_ERROR;
 
+EGLint os_egl_last_error = EGL_SUCCESS;
+GLint os_gl_last_error = GL_NO_ERROR;
+
 #define os_gl_error_to_string_GL(name, err) \
     os_gl_INTERNAL_MESSAGE_PREFIX = "OpenGL:          "; \
     os_gl_error = err; \
+    os_gl_last_error = os_gl_error; \
     switch (os_gl_error) { \
         os_gl_SWITCH_CASE_CUSTOM_LOGGER_CUSTOM_STRING_DONT_PRINT_ERROR(LOG_INFO, name, \
                                                                       GL_NO_ERROR, \
@@ -173,6 +177,7 @@ GLint os_gl_error = GL_NO_ERROR;
 #define os_gl_error_to_string_EGL(name, err) \
     os_gl_INTERNAL_MESSAGE_PREFIX = "OpenGL ES (EGL): "; \
     os_egl_error = err; \
+    os_egl_last_error = os_egl_error; \
     switch (os_egl_error) { \
         os_gl_SWITCH_CASE_CUSTOM_LOGGER_CUSTOM_STRING_DONT_PRINT_ERROR(LOG_INFO, name, \
                                                                       EGL_SUCCESS, \
@@ -398,7 +403,7 @@ int main(int argc, char* argv[]) {
                   // Stands to HAL_PIXEL_FORMAT_BGRA_8888
                   // #define AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM 5
                 .format = 5,
-                .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | USAGE
+                .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | (AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN)
         };
 
         status = AHardwareBuffer_allocate(&d0, &new_);
@@ -409,32 +414,38 @@ int main(int argc, char* argv[]) {
         }
 
         uint32_t *pixels;
-        if (AHardwareBuffer_lock(new_, USAGE, -1, nullptr, (void **) &pixels) == 0) {
+        if (AHardwareBuffer_lock(new_, (AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN), -1, nullptr, (void **) &pixels) == 0) {
             pixels[0] = 0xAABBCCDD;
             AHardwareBuffer_unlock(new_, nullptr);
         } else {
             LOG_ERROR("Failed to lock native buffer (%p, error %d)", new_, status);
             LOG_ERROR("Forcing legacy drawing");
+            AHardwareBuffer_release(new_);
             goto DONE;
         }
 
         eglCheckErrorIf_(!(clientBuffer = eglGetNativeClientBufferANDROID(new_)), ==, true, {
             LOG_ERROR("Failed to obtain EGLClientBuffer from AHardwareBuffer");
             LOG_ERROR("Forcing legacy drawing");
+            AHardwareBuffer_release(new_);
             goto DONE;
         });
 
-        eglCheckErrorIf_(!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes)), ==, true, {
+        eglCheckError((img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes));
+        if (!image) {
             if (os_egl_last_error == EGL_BAD_PARAMETER) {
                 LOG_ERROR("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
                 // *flip = 1;
+                AHardwareBuffer_release(new_);
                 goto DONE;
             } else {
                 LOG_ERROR("Failed to obtain EGLImageKHR from EGLClientBuffer");
                 LOG_ERROR("Forcing legacy drawing");
+                AHardwareBuffer_release(new_);
                 goto DONE;
             }
-            eglCheckError(eglDestroyImageKHR(egl_display, img));
+            AHardwareBuffer_release(new_);
+            goto DONE;
         } else {
             // For some reason all devices I checked had no GL_EXT_texture_format_BGRA8888 support, but some of them still provided BGRA extension.
             // EGL does not provide functions to query texture format in runtime.
@@ -455,12 +466,16 @@ int main(int argc, char* argv[]) {
             GLuint fbo = 0, texture = 0;
             eglCheckErrorIf(!eglChooseConfig(egl_display, configAttributes, &checkcfg, 1, &numConfigs), {
                 LOG_ERROR("EGL: check eglChooseConfig failed.\n");
+                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                AHardwareBuffer_release(new_);
                 goto DONE;
             });
 
             EGLContext testctx;
             eglCheckErrorIf_((testctx = eglCreateContext(egl_display, checkcfg, nullptr, ctxattribs)), ==, EGL_NO_CONTEXT, {
                 LOG_ERROR("EGL: check eglCreateContext failed.\n");
+                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                AHardwareBuffer_release(new_);
                 goto DONE;
             });
 
@@ -473,6 +488,8 @@ int main(int argc, char* argv[]) {
             eglCheckErrorIf_((checksfc = eglCreatePbufferSurface(egl_display, checkcfg, pbufferAttributes))), ==, 0, {
                 LOG_ERROR("EGL: check eglCreatePbufferSurface failed.\n");
                 eglCheckError(eglDestroyContext(egl_display, testctx));
+                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                AHardwareBuffer_release(new_);
                 goto DONE;
             });
 
@@ -481,6 +498,8 @@ int main(int argc, char* argv[]) {
                 eglCheckError(eglDestroySurface(egl_display, checksfc));
                 eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
                 eglCheckError(eglDestroyContext(egl_display, testctx));
+                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                AHardwareBuffer_release(new_);
                 goto DONE;
             });
 
@@ -503,17 +522,23 @@ int main(int argc, char* argv[]) {
                 eglCheckError(eglDestroySurface(egl_display, checksfc));
                 eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
                 eglCheckError(eglDestroyContext(egl_display, testctx));
+                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                AHardwareBuffer_release(new_);
                 goto DONE;
             } else if (pixel[0] != 0xAADDCCBB) {
                 log("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X\n", pixel[0]);
                 eglCheckError(eglDestroySurface(egl_display, checksfc));
                 eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
                 eglCheckError(eglDestroyContext(egl_display, testctx));
+                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                AHardwareBuffer_release(new_);
                 goto DONE;
             }
             eglCheckError(eglDestroySurface(egl_display, checksfc));
             eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
             eglCheckError(eglDestroyContext(egl_display, testctx));
+            eglCheckError(eglDestroyImageKHR(egl_display, img));
+            AHardwareBuffer_release(new_);
         }
     DONE:
     }
