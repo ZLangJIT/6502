@@ -12,11 +12,11 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
     apt upgrade
     #apt install cmake clang mesa-dev
     apt install wget cmake
-    if [[ ! -e android-ndk-r27b-aarch64.zip ]] ; then
-      echo "downloading ndk ..."
-      wget https://github.com/lzhiyong/termux-ndk/releases/download/android-ndk/android-ndk-r27b-aarch64.zip
-    fi
     if [[ ! -e ndk ]] ; then
+      if [[ ! -e android-ndk-r27b-aarch64.zip ]] ; then
+        echo "downloading ndk ..."
+        wget https://github.com/lzhiyong/termux-ndk/releases/download/android-ndk/android-ndk-r27b-aarch64.zip
+      fi
       mkdir ndk
       cd ndk
       echo "extracting ndk ..."
