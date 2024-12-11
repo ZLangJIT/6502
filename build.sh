@@ -20,7 +20,10 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
       mkdir ndk
       cd ndk
       echo "extracting ndk ..."
-      unzip android-ndk-r27b-aarch64.zip
+      unzip ../android-ndk-r27b-aarch64.zip
+      if [[ -e ../android-ndk-r27b-aarch64.zip ]] ; then
+        rm ../android-ndk-r27b-aarch64.zip
+      fi
       cd ..
     fi
     export ANDROID_NDK_HOME=$(pwd)/ndk
