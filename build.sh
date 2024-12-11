@@ -11,6 +11,7 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
     apt update
     apt upgrade
     apt install cmake clang mesa-dev
+    export ANDROID_API=26
     cmake -DCMAKE_BUILD_TYPE=Release -DTERMUX=1 -S . -B build
   else
     echo "Non-Termux shell detected, build might fail"
