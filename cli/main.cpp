@@ -395,7 +395,9 @@ int main(int argc, char* argv[]) {
                 .width = 64,
                 .height = 64,
                 .layers = 1,
-                .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM,
+                  // Stands to HAL_PIXEL_FORMAT_BGRA_8888
+                  // #define AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM 5
+                .format = 5,
                 .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | USAGE
         };
 
