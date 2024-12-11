@@ -11,7 +11,7 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
     apt update
     apt upgrade
     #apt install cmake clang mesa-dev
-    apt install wget
+    apt install wget cmake
     if [[ ! -e android-ndk-r27b-aarch64.zip ]] ; then
       echo "downloading ndk ..."
       wget https://github.com/lzhiyong/termux-ndk/releases/download/android-ndk/android-ndk-r27b-aarch64.zip
@@ -26,7 +26,9 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
       fi
       cd ..
     fi
-    export ANDROID_NDK_HOME=$(pwd)/ndk
+    export ANDROID_NDK_HOME=$(pwd)/ndk/android-ndk-r27b
+    export PYTHONHOME=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/linux-aarch64/python3
+    export LD_LIBRARY_PATH=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/linux-aarch64/python3/lib
     cmake -DCMAKE_BUILD_TYPE=Release -DTERMUX=1 -S . -B build
   else
     echo "Non-Termux shell detected, build might fail"
