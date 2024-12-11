@@ -11,10 +11,10 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
     apt update
     apt upgrade
     apt install cmake clang mesa-dev
-    cmake -DCMAKE_BUILD_TYPE=Release -DTERMUX=1 -S . -B build
+    cmake -DCMAKE_BUILD_TYPE=Release -DTERMUX=1 -D__ANDROID_API__=26 -S . -B build
   else
     echo "Non-Termux shell detected"
-    cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
+    cmake -DCMAKE_BUILD_TYPE=Release -D__ANDROID_API__=26 -S . -B build
   fi
 elif [[ -d /data/data/com.termux.nix/files/usr ]] ; then
   echo "Android Termux Nix shell detected"
