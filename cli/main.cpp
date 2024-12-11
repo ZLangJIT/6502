@@ -142,7 +142,7 @@ void LOG_ALWAYS_FATAL(const char* format, ... ) {
 #define os_gl_boolean_to_string(val, TRUE_VALUE) val == TRUE_VALUE ? "true" : "false"
 
 const char * os_gl_INTERNAL_MESSAGE_PREFIX = "";
-bool os_gl_LOG_PRINT_NON_ERRORS = true;
+bool os_gl_LOG_PRINT_NON_ERRORS = false;
 
 EGLint os_egl_error = EGL_SUCCESS;
 GLint os_gl_error = GL_NO_ERROR;
@@ -205,184 +205,317 @@ GLint os_gl_error = GL_NO_ERROR;
 #define eglCheckError(code) code; os_gl_error_to_string_EGL(#code, eglGetError());
 #define glCheckError(code) code; os_gl_error_to_string_GL(#code, glGetError());
 
+#define eglCheckErrorIf_(code, eq, val, block_true) if ((code) eq val) { os_gl_error_to_string_EGL(#code, eglGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, eglGetError()); };
 #define eglCheckErrorIf(code, block_true) if ((code) == EGL_TRUE) { os_gl_error_to_string_EGL(#code, eglGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, eglGetError()); };
 #define glCheckErrorIf(code, block_true) if ((code) == GL_TRUE) { os_gl_error_to_string_GL(#code, glGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, glGetError()); };
 
-class dep {
-  std::vector<dep*> deps;
-  bool destroyed = true;
-  public:
-  void add(dep * x) {
-    deps.emplace_back(x);
-  }
-  virtual void onBuild() {}
-  virtual void onRebuild() { destroy(); build(); }
-  virtual void onDestroy() {}
-  void build() {
-    if (destroyed) {
-      onBuild();
-      for (dep * x : deps) x->build();
-      destroyed = false;
-    }
-  }
-  void rebuild() { onRebuild(); }
-  void destroy() {
-    if (!destroyed) {
-      for (size_t i = deps.size(); i > 0; i--) deps[i-1]->destroy();
-      onDestroy();
-      destroyed = true;
-    }
-  }
-  virtual ~dep() { destroy(); }
-};
+const char *
+PrintExtensions(const char *extensions)
+{
+   const char *p, *end, *next;
+   int column;
 
-#define component_action(start, action, end, x)   LOG_INFO("[component " #start "] - " #x); x.action(); LOG_INFO("[component " #end "] - " #x "\n")
+   column = 0;
+   end = extensions + strlen(extensions);
 
-#define component_build(x)   component_action(building, build, built, x)
-#define component_rebuild(x)   component_action(rebuilding, rebuild, rebuilt, x)
-#define component_destroy(x)   component_action(destroying, destroy, destroyed, x)
+   for (p = extensions; p < end; p = next + 1) {
+      next = strchr(p, ' ');
+      if (next == NULL)
+         next = end;
 
-struct egl_display : public dep {
-  const char *
-  PrintExtensions(const char *extensions)
-  {
-     const char *p, *end, *next;
-     int column;
-  
-     column = 0;
-     end = extensions + strlen(extensions);
-  
-     for (p = extensions; p < end; p = next + 1) {
-        next = strchr(p, ' ');
-        if (next == NULL)
-           next = end;
-  
-        if (column > 0 && column + next - p + 1 > 70) {
-  	 printf("\n");
-  	 column = 0;
-        }
-        if (column == 0)
-  	 printf("    ");
-        else
-  	 printf(" ");
-        column += next - p + 1;
-  
-        printf("%.*s", (int) (next - p), p);
-  
-        p = next + 1;
-     }
-  
-     if (column > 0)
-        printf("\n");
-  
-     return extensions;
+      if (column > 0 && column + next - p + 1 > 70) {
+	 printf("\n");
+	 column = 0;
+      }
+      if (column == 0)
+	 printf("    ");
+      else
+	 printf(" ");
+      column += next - p + 1;
+
+      printf("%.*s", (int) (next - p), p);
+
+      p = next + 1;
+   }
+
+   if (column > 0)
+      printf("\n");
+
+   return extensions;
+}
+
+const char *
+PrintDisplayExtensions(EGLDisplay d)
+{
+   const char *extensions;
+
+   extensions = eglQueryString(d, EGL_EXTENSIONS);
+   if (!extensions)
+      return NULL;
+
+#ifdef EGL_MESA_query_driver
+   if (strstr(extensions, "EGL_MESA_query_driver")) {
+      PFNEGLGETDISPLAYDRIVERNAMEPROC getDisplayDriverName =
+         (PFNEGLGETDISPLAYDRIVERNAMEPROC)
+            eglGetProcAddress("eglGetDisplayDriverName");
+      LOG_INFO("EGL driver name: %s", getDisplayDriverName(d));
+   }
+#endif
+
+   LOG_INFO(d == EGL_NO_DISPLAY ? "EGL client extensions string:" : "EGL extensions string:");
+
+   return PrintExtensions(extensions);
+}
+
+int maj, min;
+EGLDisplay egl_display = EGL_NO_DISPLAY;
+
+bool
+doOneDisplay(EGLDisplay d, const char *name)
+{
+  LOG_INFO("%s:", name);
+  eglCheckErrorIf(!eglInitialize(d, &maj, &min), {
+    LOG_ERROR("");
+    return false;
+  })
+  LOG_INFO("EGL API version: %d.%d", maj, min);
+  LOG_INFO("EGL vendor string: %s", eglQueryString(d, EGL_VENDOR));
+  LOG_INFO("EGL version string: %s", eglQueryString(d, EGL_VERSION));
+#ifdef EGL_VERSION_1_2
+  LOG_INFO("EGL client APIs: %s", eglQueryString(d, EGL_CLIENT_APIS));
+#endif
+
+  PrintDisplayExtensions(d);
+   
+  //PrintConfigs(d);
+  LOG_INFO("");
+  egl_display = d;
+  return true;
+}
+
+bool init_egl() {
+  int ret = 0;
+  const char *clientext;
+
+  clientext = PrintDisplayExtensions(EGL_NO_DISPLAY);
+  printf("\n");
+
+  if (strstr(clientext, "EGL_EXT_platform_base")) {
+    PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplay = (PFNEGLGETPLATFORMDISPLAYEXTPROC) eglGetProcAddress("eglGetPlatformDisplayEXT");
+    if (strstr(clientext, "EGL_KHR_platform_android"))
+      if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_ANDROID_KHR, EGL_DEFAULT_DISPLAY, NULL), "Android platform"))
+        return true;
+    if (strstr(clientext, "EGL_MESA_platform_gbm") || strstr(clientext, "EGL_KHR_platform_gbm"))
+      if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_GBM_MESA, EGL_DEFAULT_DISPLAY, NULL), "GBM platform"))
+        return true;
+    if (strstr(clientext, "EGL_EXT_platform_wayland") || strstr(clientext, "EGL_KHR_platform_wayland"))
+      if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_WAYLAND_EXT, EGL_DEFAULT_DISPLAY, NULL), "Wayland platform"))
+        return true;
+    if (strstr(clientext, "EGL_EXT_platform_x11") || strstr(clientext, "EGL_KHR_platform_x11"))
+      if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_X11_EXT, EGL_DEFAULT_DISPLAY, NULL), "X11 platform"))
+        return true;
+    if (strstr(clientext, "EGL_MESA_platform_surfaceless"))
+      if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA, EGL_DEFAULT_DISPLAY, NULL), "Surfaceless platform"))
+        return true;
+  } else {
+    if (doOneDisplay(eglGetDisplay(EGL_DEFAULT_DISPLAY), "Default display"))
+      return true;
   }
-  
-  const char *
-  PrintDisplayExtensions(EGLDisplay d)
-  {
-     const char *extensions;
-  
-     extensions = eglQueryString(d, EGL_EXTENSIONS);
-     if (!extensions)
-        return NULL;
-  
-  #ifdef EGL_MESA_query_driver
-     if (strstr(extensions, "EGL_MESA_query_driver")) {
-        PFNEGLGETDISPLAYDRIVERNAMEPROC getDisplayDriverName =
-           (PFNEGLGETDISPLAYDRIVERNAMEPROC)
-              eglGetProcAddress("eglGetDisplayDriverName");
-        LOG_INFO("EGL driver name: %s", getDisplayDriverName(d));
-     }
-  #endif
-  
-     LOG_INFO(d == EGL_NO_DISPLAY ? "EGL client extensions string:" : "EGL extensions string:");
-  
-     return PrintExtensions(extensions);
-  }
-
-  int maj, min;
-  EGLDisplay egl_display = EGL_NO_DISPLAY;
-
-  bool
-  doOneDisplay(EGLDisplay d, const char *name)
-  {
-  
-    LOG_INFO("%s:", name);
-    eglCheckErrorIf(!eglInitialize(d, &maj, &min), {
+  return false;
+}
+bool deinit_egl() {
+  if (egl_display != EGL_NO_DISPLAY) {
+    eglCheckErrorIf(!eglTerminate(egl_display), {
+      LOG_ERROR("");
       return false;
-    })
-    LOG_INFO("EGL API version: %d.%d", maj, min);
-    LOG_INFO("EGL vendor string: %s", eglQueryString(d, EGL_VENDOR));
-    LOG_INFO("EGL version string: %s", eglQueryString(d, EGL_VERSION));
-  #ifdef EGL_VERSION_1_2
-    LOG_INFO("EGL client APIs: %s", eglQueryString(d, EGL_CLIENT_APIS));
-  #endif
-
-    PrintDisplayExtensions(d);
-     
-    //PrintConfigs(d);
-    printf("\n");
-    egl_display = d;
-    return true;
+    });
+    egl_display = EGL_NO_DISPLAY;
+    min = 0;
+    maj = 0;
   }
-
-  void onBuild() override {
-    int ret = 0;
-    const char *clientext;
-
-    clientext = PrintDisplayExtensions(EGL_NO_DISPLAY);
-    printf("\n");
-
-    if (strstr(clientext, "EGL_EXT_platform_base")) {
-      PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplay = (PFNEGLGETPLATFORMDISPLAYEXTPROC) eglGetProcAddress("eglGetPlatformDisplayEXT");
-      if (strstr(clientext, "EGL_KHR_platform_android"))
-        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_ANDROID_KHR, EGL_DEFAULT_DISPLAY, NULL), "Android platform"))
-          return;
-      if (strstr(clientext, "EGL_MESA_platform_gbm") || strstr(clientext, "EGL_KHR_platform_gbm"))
-        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_GBM_MESA, EGL_DEFAULT_DISPLAY, NULL), "GBM platform"))
-          return;
-      if (strstr(clientext, "EGL_EXT_platform_wayland") || strstr(clientext, "EGL_KHR_platform_wayland"))
-        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_WAYLAND_EXT, EGL_DEFAULT_DISPLAY, NULL), "Wayland platform"))
-          return;
-      if (strstr(clientext, "EGL_EXT_platform_x11") || strstr(clientext, "EGL_KHR_platform_x11"))
-        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_X11_EXT, EGL_DEFAULT_DISPLAY, NULL), "X11 platform"))
-          return;
-      if (strstr(clientext, "EGL_MESA_platform_surfaceless"))
-        if (doOneDisplay(getPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA, EGL_DEFAULT_DISPLAY, NULL), "Surfaceless platform"))
-          return;
-    } else {
-      if (doOneDisplay(eglGetDisplay(EGL_DEFAULT_DISPLAY), "Default display"))
-        return;
-    }
-  }
-  void onDestroy() override {
-    if (egl_display != EGL_NO_DISPLAY) {
-      eglCheckError(eglTerminate(egl_display));
-      egl_display = EGL_NO_DISPLAY;
-      min = 0;
-      maj = 0;
-    }
-  }
-};
-
-struct egl_context : public dep {
-  egl_display display;
-  EGLint major, minor;
-  void onBuild() override {
-    component_build(display);
-    eglCheckError(eglMakeCurrent(display.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
-  }
-  void onDestroy() override {
-    eglCheckError(eglMakeCurrent(display.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
-    component_destroy(display);
-  }
+  return true;
 };
 
 int main(int argc, char* argv[]) {
-  egl_context context;
-  component_build(context);
-  component_destroy(context);
-  //component_rebuild(context);
+  if (!init_egl()) return 0;
+  eglBindAPI(EGL_OPENGL_ES_API);
+  
+  EGLint numConfigs;
+  EGLConfig cfg = 0;
+  EGLContext ctx = EGL_NO_CONTEXT;
+  EGLSurface sfc = EGL_NO_SURFACE;
+
+  const EGLint configAttribs[] = {
+          EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+          EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+          EGL_RED_SIZE, 8,
+          EGL_GREEN_SIZE, 8,
+          EGL_BLUE_SIZE, 8,
+          EGL_ALPHA_SIZE, 0,
+          EGL_NONE
+  };
+  const EGLint configAttribs2[] = {
+          EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+          EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+          EGL_RED_SIZE, 8,
+          EGL_GREEN_SIZE, 8,
+          EGL_BLUE_SIZE, 8,
+          EGL_ALPHA_SIZE, 8,
+          EGL_NONE
+  };
+  const EGLint ctxattribs[] = {
+          EGL_CONTEXT_CLIENT_VERSION,2, EGL_NONE
+  };
+  
+  eglCheckErrorIf(!eglChooseConfig(egl_display, configAttribs, &cfg, 1, &numConfigs), {
+    eglCheckErrorIf(!eglChooseConfig(egl_display, configAttribs2, &cfg, 1, &numConfigs), {
+      deinit_egl();
+      return 0;
+    })
+  });
+  
+  eglCheckErrorIf_((ctx = eglCreateContext(egl_display, cfg, nullptr, ctxattribs)), !=, EGL_NO_CONTEXT, {
+      deinit_egl();
+      return 0;
+  });
+  eglCheckErrorIf(!eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), {
+      eglCheckError(eglDestroyContext(egl_display, ctx));
+      deinit_egl();
+      return 0;
+  });
+  #if __ANDROID__
+    {
+        // Some devices do not support sampling from HAL_PIXEL_FORMAT_BGRA_8888, here we are checking it.
+        const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
+        EGLClientBuffer clientBuffer;
+        EGLImageKHR img;
+        AHardwareBuffer *new_ = nullptr;
+        int status;
+        AHardwareBuffer_Desc d0 = {
+                .width = 64,
+                .height = 64,
+                .layers = 1,
+                .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM,
+                .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | USAGE
+        };
+
+        status = AHardwareBuffer_allocate(&d0, &new_);
+        if (status != 0 || new_ == nullptr) {
+            LOG_ERROR("Failed to allocate native buffer (%p, error %d)", new_, status);
+            LOG_ERROR("Forcing legacy drawing");
+            goto DONE;
+        }
+
+        uint32_t *pixels;
+        if (AHardwareBuffer_lock(new_, USAGE, -1, nullptr, (void **) &pixels) == 0) {
+            pixels[0] = 0xAABBCCDD;
+            AHardwareBuffer_unlock(new_, nullptr);
+        } else {
+            LOG_ERROR("Failed to lock native buffer (%p, error %d)", new_, status);
+            LOG_ERROR("Forcing legacy drawing");
+            goto DONE;
+        }
+
+        eglCheckErrorIf_(!(clientBuffer = eglGetNativeClientBufferANDROID(new_)), ==, true, {
+            LOG_ERROR("Failed to obtain EGLClientBuffer from AHardwareBuffer");
+            LOG_ERROR("Forcing legacy drawing");
+            goto DONE;
+        });
+
+        eglCheckErrorIf_(!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes)), ==, true, {
+            if (os_egl_last_error == EGL_BAD_PARAMETER) {
+                LOG_ERROR("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
+                // *flip = 1;
+                goto DONE;
+            } else {
+                LOG_ERROR("Failed to obtain EGLImageKHR from EGLClientBuffer");
+                LOG_ERROR("Forcing legacy drawing");
+                goto DONE;
+            }
+            eglCheckError(eglDestroyImageKHR(egl_display, img));
+        } else {
+            // For some reason all devices I checked had no GL_EXT_texture_format_BGRA8888 support, but some of them still provided BGRA extension.
+            // EGL does not provide functions to query texture format in runtime.
+            // Workarounds are less performant but at least they let us use Termux:X11 on devices with missing BGRA support.
+            // We handle two cases.
+            // If resulting texture has BGRA format but still drawing RGBA we should flip format to RGBA and flip pixels manually in shader.
+            // In the case if for some reason we can not use HAL_PIXEL_FORMAT_BGRA_8888 we should fallback to legacy drawing method (uploading pixels via glTexImage2D).
+            const EGLint configAttributes[] = {
+                    EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+                    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+                    EGL_RED_SIZE, 8,
+                    EGL_GREEN_SIZE, 8,
+                    EGL_BLUE_SIZE, 8,
+                    EGL_ALPHA_SIZE, 8,
+                    EGL_NONE
+            };
+            EGLConfig checkcfg = 0;
+            GLuint fbo = 0, texture = 0;
+            eglCheckErrorIf(!eglChooseConfig(egl_display, configAttributes, &checkcfg, 1, &numConfigs), {
+                LOG_ERROR("EGL: check eglChooseConfig failed.\n");
+                goto DONE;
+            });
+
+            EGLContext testctx;
+            eglCheckErrorIf_((testctx = eglCreateContext(egl_display, checkcfg, nullptr, ctxattribs)), ==, EGL_NO_CONTEXT, {
+                LOG_ERROR("EGL: check eglCreateContext failed.\n");
+                goto DONE;
+            });
+
+            const EGLint pbufferAttributes[] = {
+                    EGL_WIDTH, 64,
+                    EGL_HEIGHT, 64,
+                    EGL_NONE,
+            };
+            EGLSurface checksfc;
+            eglCheckErrorIf_((checksfc = eglCreatePbufferSurface(egl_display, checkcfg, pbufferAttributes))), ==, 0, {
+                LOG_ERROR("EGL: check eglCreatePbufferSurface failed.\n");
+                eglCheckError(eglDestroyContext(egl_display, testctx));
+                goto DONE;
+            });
+
+            eglCheckErrorIf(!eglMakeCurrent(egl_display, checksfc, checksfc, testctx), {
+                LOG_ERROR("EGL: check eglMakeCurrent failed.\n");
+                eglCheckError(eglDestroySurface(egl_display, checksfc));
+                eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+                eglCheckError(eglDestroyContext(egl_display, testctx));
+                goto DONE;
+            });
+
+            glCheckError(glActiveTexture(GL_TEXTURE0));
+            glCheckError(glGenTextures(1, &texture));
+            glCheckError(glBindTexture(GL_TEXTURE_2D, texture));
+            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            glCheckError(glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, img));
+            glCheckError(glGenFramebuffers(1, &fbo));
+            glCheckError(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
+            glCheckError(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0));
+            uint32_t pixel[64*64];
+            glCheckError(glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel);
+            if (pixel[0] == 0xAABBCCDD) {
+                LOG_ERROR("GLES: GLES draws pixels unchanged, probably system does not support AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM. Forcing bgra.\n");
+                //*flip = 1;
+                eglCheckError(eglDestroySurface(egl_display, checksfc));
+                eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+                eglCheckError(eglDestroyContext(egl_display, testctx));
+                goto DONE;
+            } else if (pixel[0] != 0xAADDCCBB) {
+                log("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X\n", pixel[0]);
+                eglCheckError(eglDestroySurface(egl_display, checksfc));
+                eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+                eglCheckError(eglDestroyContext(egl_display, testctx));
+                goto DONE;
+            }
+            eglCheckError(eglDestroySurface(egl_display, checksfc));
+            eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+            eglCheckError(eglDestroyContext(egl_display, testctx));
+        }
+    DONE:
+    }
+  #endif
+  deinit_egl();
   return 0;
 }
