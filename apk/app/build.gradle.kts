@@ -5,15 +5,17 @@ plugins {
 
 android {
     namespace = "app.zlangjit"
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
+    compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "app.zlangjit"
         minSdk = 28 // Android Pie
-        targetSdk = 34
+        targetSdk = 35
         versionCode = GRADLE_VERSION_CODE
         versionName = "GRADLE_VERSION_STRING"
+        ndkVersion = "27.1.12297006"
+        ndkPath = "NDK_DIRECTORY"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -57,7 +59,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("../../CMakeLists.txt")
-            version = "3.22.1"
+            version = "3.30.5"
         }
     }
 }

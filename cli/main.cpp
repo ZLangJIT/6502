@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include <vector>
 
 #define EGL_EGLEXT_PROTOTYPES
@@ -10,8 +9,8 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #if __ANDROID__
-#include <android/native_window_jni.h>
 #include <android/log.h>
+#include <android/native_window_jni.h>
 #include <android/hardware_buffer.h>
 #endif
 
@@ -207,12 +206,12 @@ GLint os_gl_last_error = GL_NO_ERROR;
     os_gl_INTERNAL_MESSAGE_PREFIX = ""; \
     os_egl_error = EGL_SUCCESS;
 
-#define eglCheckError(code) code; os_gl_error_to_string_EGL(#code, eglGetError());
-#define glCheckError(code) code; os_gl_error_to_string_GL(#code, glGetError());
+#define os_egl_check_error(code) code; os_gl_error_to_string_EGL(#code, eglGetError());
+#define os_gl_check_error(code) code; os_gl_error_to_string_GL(#code, glGetError());
 
-#define eglCheckErrorIf_(code, eq, val, block_true) if ((code) eq val) { os_gl_error_to_string_EGL(#code, eglGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, eglGetError()); };
-#define eglCheckErrorIf(code, block_true) if ((code) == EGL_TRUE) { os_gl_error_to_string_EGL(#code, eglGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, eglGetError()); };
-#define glCheckErrorIf(code, block_true) if ((code) == GL_TRUE) { os_gl_error_to_string_GL(#code, glGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, glGetError()); };
+#define os_egl_check_errorIf_(code, eq, val, block_true) if ((code) eq val) { os_gl_error_to_string_EGL(#code, eglGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, eglGetError()); };
+#define os_egl_check_errorIf(code, block_true) if ((code) == EGL_TRUE) { os_gl_error_to_string_EGL(#code, eglGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, eglGetError()); };
+#define os_gl_check_errorIf(code, block_true) if ((code) == GL_TRUE) { os_gl_error_to_string_GL(#code, glGetError()); block_true; } else { os_gl_error_to_string_EGL(#code, glGetError()); };
 
 const char *
 PrintExtensions(const char *extensions)
@@ -279,7 +278,7 @@ bool
 doOneDisplay(EGLDisplay d, const char *name)
 {
   LOG_INFO("%s:", name);
-  eglCheckErrorIf(!eglInitialize(d, &maj, &min), {
+  os_egl_check_errorIf(!eglInitialize(d, &maj, &min), {
     LOG_ERROR("");
     return false;
   })
@@ -330,7 +329,7 @@ bool init_egl() {
 }
 bool deinit_egl() {
   if (egl_display != EGL_NO_DISPLAY) {
-    eglCheckErrorIf(!eglTerminate(egl_display), {
+    os_egl_check_errorIf(!eglTerminate(egl_display), {
       LOG_ERROR("");
       return false;
     });
@@ -372,19 +371,19 @@ int main(int argc, char* argv[]) {
           EGL_CONTEXT_CLIENT_VERSION,2, EGL_NONE
   };
   
-  eglCheckErrorIf(!eglChooseConfig(egl_display, configAttribs, &cfg, 1, &numConfigs), {
-    eglCheckErrorIf(!eglChooseConfig(egl_display, configAttribs2, &cfg, 1, &numConfigs), {
+  os_egl_check_errorIf(!eglChooseConfig(egl_display, configAttribs, &cfg, 1, &numConfigs), {
+    os_egl_check_errorIf(!eglChooseConfig(egl_display, configAttribs2, &cfg, 1, &numConfigs), {
       deinit_egl();
       return 0;
     })
   });
   
-  eglCheckErrorIf_((ctx = eglCreateContext(egl_display, cfg, nullptr, ctxattribs)), !=, EGL_NO_CONTEXT, {
+  os_egl_check_errorIf_((ctx = eglCreateContext(egl_display, cfg, nullptr, ctxattribs)), !=, EGL_NO_CONTEXT, {
       deinit_egl();
       return 0;
   });
-  eglCheckErrorIf(!eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), {
-      eglCheckError(eglDestroyContext(egl_display, ctx));
+  os_egl_check_errorIf(!eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), {
+      os_egl_check_error(eglDestroyContext(egl_display, ctx));
       deinit_egl();
       return 0;
   });
@@ -424,14 +423,14 @@ int main(int argc, char* argv[]) {
             goto DONE;
         }
 
-        eglCheckErrorIf_(!(clientBuffer = eglGetNativeClientBufferANDROID(new_)), ==, true, {
+        os_egl_check_errorIf_(!(clientBuffer = eglGetNativeClientBufferANDROID(new_)), ==, true, {
             LOG_ERROR("Failed to obtain EGLClientBuffer from AHardwareBuffer");
             LOG_ERROR("Forcing legacy drawing");
             AHardwareBuffer_release(new_);
             goto DONE;
         });
 
-        eglCheckError((img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes));
+        os_egl_check_error((img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes));
         if (!image) {
             if (os_egl_last_error == EGL_BAD_PARAMETER) {
                 LOG_ERROR("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
@@ -464,17 +463,17 @@ int main(int argc, char* argv[]) {
             };
             EGLConfig checkcfg = 0;
             GLuint fbo = 0, texture = 0;
-            eglCheckErrorIf(!eglChooseConfig(egl_display, configAttributes, &checkcfg, 1, &numConfigs), {
+            os_egl_check_errorIf(!eglChooseConfig(egl_display, configAttributes, &checkcfg, 1, &numConfigs), {
                 LOG_ERROR("EGL: check eglChooseConfig failed.\n");
-                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
             });
 
             EGLContext testctx;
-            eglCheckErrorIf_((testctx = eglCreateContext(egl_display, checkcfg, nullptr, ctxattribs)), ==, EGL_NO_CONTEXT, {
+            os_egl_check_errorIf_((testctx = eglCreateContext(egl_display, checkcfg, nullptr, ctxattribs)), ==, EGL_NO_CONTEXT, {
                 LOG_ERROR("EGL: check eglCreateContext failed.\n");
-                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
             });
@@ -485,59 +484,59 @@ int main(int argc, char* argv[]) {
                     EGL_NONE,
             };
             EGLSurface checksfc;
-            eglCheckErrorIf_((checksfc = eglCreatePbufferSurface(egl_display, checkcfg, pbufferAttributes))), ==, 0, {
+            os_egl_check_errorIf_((checksfc = eglCreatePbufferSurface(egl_display, checkcfg, pbufferAttributes))), ==, 0, {
                 LOG_ERROR("EGL: check eglCreatePbufferSurface failed.\n");
-                eglCheckError(eglDestroyContext(egl_display, testctx));
-                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                os_egl_check_error(eglDestroyContext(egl_display, testctx));
+                os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
             });
 
-            eglCheckErrorIf(!eglMakeCurrent(egl_display, checksfc, checksfc, testctx), {
+            os_egl_check_errorIf(!eglMakeCurrent(egl_display, checksfc, checksfc, testctx), {
                 LOG_ERROR("EGL: check eglMakeCurrent failed.\n");
-                eglCheckError(eglDestroySurface(egl_display, checksfc));
-                eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
-                eglCheckError(eglDestroyContext(egl_display, testctx));
-                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                os_egl_check_error(eglDestroySurface(egl_display, checksfc));
+                os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+                os_egl_check_error(eglDestroyContext(egl_display, testctx));
+                os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
             });
 
-            glCheckError(glActiveTexture(GL_TEXTURE0));
-            glCheckError(glGenTextures(1, &texture));
-            glCheckError(glBindTexture(GL_TEXTURE_2D, texture));
-            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-            glCheckError(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-            glCheckError(glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, img));
-            glCheckError(glGenFramebuffers(1, &fbo));
-            glCheckError(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
-            glCheckError(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0));
+            os_gl_check_error(glActiveTexture(GL_TEXTURE0));
+            os_gl_check_error(glGenTextures(1, &texture));
+            os_gl_check_error(glBindTexture(GL_TEXTURE_2D, texture));
+            os_gl_check_error(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            os_gl_check_error(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            os_gl_check_error(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            os_gl_check_error(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            os_gl_check_error(glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, img));
+            os_gl_check_error(glGenFramebuffers(1, &fbo));
+            os_gl_check_error(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
+            os_gl_check_error(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0));
             uint32_t pixel[64*64];
-            glCheckError(glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel));
+            os_gl_check_error(glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel));
             if (pixel[0] == 0xAABBCCDD) {
                 LOG_ERROR("GLES: GLES draws pixels unchanged, probably system does not support AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM. Forcing bgra.\n");
                 //*flip = 1;
-                eglCheckError(eglDestroySurface(egl_display, checksfc));
-                eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
-                eglCheckError(eglDestroyContext(egl_display, testctx));
-                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                os_egl_check_error(eglDestroySurface(egl_display, checksfc));
+                os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+                os_egl_check_error(eglDestroyContext(egl_display, testctx));
+                os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
             } else if (pixel[0] != 0xAADDCCBB) {
-                log("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X\n", pixel[0]);
-                eglCheckError(eglDestroySurface(egl_display, checksfc));
-                eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
-                eglCheckError(eglDestroyContext(egl_display, testctx));
-                eglCheckError(eglDestroyImageKHR(egl_display, img));
+                LOG_ERROR("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X\n", pixel[0]);
+                os_egl_check_error(eglDestroySurface(egl_display, checksfc));
+                os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+                os_egl_check_error(eglDestroyContext(egl_display, testctx));
+                os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
             }
-            eglCheckError(eglDestroySurface(egl_display, checksfc));
-            eglCheckError(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
-            eglCheckError(eglDestroyContext(egl_display, testctx));
-            eglCheckError(eglDestroyImageKHR(egl_display, img));
+            os_egl_check_error(eglDestroySurface(egl_display, checksfc));
+            os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+            os_egl_check_error(eglDestroyContext(egl_display, testctx));
+            os_egl_check_error(eglDestroyImageKHR(egl_display, img));
             AHardwareBuffer_release(new_);
         }
     DONE:
