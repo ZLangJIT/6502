@@ -96,15 +96,19 @@ int main(int argc, char* argv[]) {
   ram = reinterpret_cast<uint8_t*>(malloc(4096*65));
   memset(ram, 0x0, 4096*65);
   pc = 0x0;
-  lastPc = 0x1; // can be any address != pc
+  lastPc = 0xfffc;
   ram[pc+0] = 0xa5; ram[pc+1] = 0x06; // lda 6
   ram[pc+2] = 0xa5; ram[pc+3] = 0x07; // lda 7
   ram[pc+4] = 0xa5; ram[pc+5] = 0x06; // lda 6
   ram[pc+6] = 0xa5; ram[pc+7] = 0x07; // lda 7
   ram[pc+8] = 0xdb;                   // STP
+
+  // 6502 reset vector - set this to the PC to start executing from
+  ram[0xfffd] = 0x0; // high
+  ram[0xfffc] = 0x0; // low
+  
   printf("\nResetting...\n");
   vrEmu6502Reset(vr6502);
-  vrEmu6502SetPC(vr6502, pc);
   printf("\nRunning...\n");
   while (1) {
     if (vrEmu6502GetOpcodeCycle(vr6502) == 0) {
@@ -112,12 +116,12 @@ int main(int argc, char* argv[]) {
       uint16_t pc = vrEmu6502GetCurrentOpcodeAddr(vr6502);
       printf("\nCurrent instruction:");
       outputStep(vr6502, pc);
-      if (lastPc == pc) {
-        printf("\nFinal instruction (lastPc == pc):");
-        outputStep(vr6502, pc);
-        status = pc == 0x4c ? 0 : -1;
-        break;
-      }
+      // if (lastPc == pc) {
+      //   printf("\nFinal instruction (lastPc == pc):");
+      //   outputStep(vr6502, pc);
+      //   status = pc == 0x4c ? 0 : -1;
+      //   break;
+      // }
       lastPc = pc;
       ++instructionCount;
 
