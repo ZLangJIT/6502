@@ -1,2 +1,0 @@
-/data/data/com.termux.nix/files/home/6502-OS/vrEmu6502/build/install/include/vrEmu6502.h
-/data/data/com.termux.nix/files/home/6502-OS/vrEmu6502/build/install/lib/libvrEmu6502.a
