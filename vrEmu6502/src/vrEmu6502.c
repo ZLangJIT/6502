@@ -220,8 +220,7 @@ VR_EMU_6502_DLLEXPORT VrEmu6502* vrEmu6502New(
   assert(writeFn);
 
   VrEmu6502* vr6502 = (VrEmu6502*)malloc(sizeof(VrEmu6502));
-  if (vr6502 != NULL)
-  {
+  if (vr6502 != NULL) {
     vr6502->model = model;
     vr6502->readFn = readFn;
     vr6502->writeFn = writeFn;
@@ -259,8 +258,6 @@ VR_EMU_6502_DLLEXPORT VrEmu6502* vrEmu6502New(
       vr6502->mnemonicNames[i] = opcodeToMnemonicStr(vr6502, i & 0xff);
       vr6502->addrModes[i] = opcodeToAddrMode(vr6502, i & 0xff);
     }
-
-    vrEmu6502Reset(vr6502);
   }
 
   return vr6502;
