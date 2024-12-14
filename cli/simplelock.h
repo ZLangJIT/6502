@@ -1,0 +1,45 @@
+#ifndef SIMPLE_LOCK_H
+#define SIMPLE_LOCK_H
+
+#ifdef _MSC_VER
+
+#include <windows.h>
+
+#define atom_cas_long(ptr, oval, nval) (InterlockedCompareExchange((LONG volatile *)ptr, nval, oval) == oval)
+#define atom_cas_pointer(ptr, oval, nval) (InterlockedCompareExchangePointer((PVOID volatile *)ptr, nval, oval) == oval)
+#define atom_inc(ptr) InterlockedIncrement((LONG volatile *)ptr)
+#define atom_dec(ptr) InterlockedDecrement((LONG volatile *)ptr)
+#define atom_sync() MemoryBarrier()
+#define atom_spinlock(ptr) while (InterlockedExchange((LONG volatile *)ptr , 1)) {}
+#define atom_spinunlock(ptr) InterlockedExchange((LONG volatile *)ptr, 0)
+
+#else
+
+#define atom_cas_long(ptr, oval, nval) __sync_bool_compare_and_swap(ptr, oval, nval)
+#define atom_cas_pointer(ptr, oval, nval) __sync_bool_compare_and_swap(ptr, oval, nval)
+#define atom_inc(ptr) __sync_add_and_fetch(ptr, 1)
+#define atom_dec(ptr) __sync_sub_and_fetch(ptr, 1)
+#define atom_sync() __sync_synchronize()
+#define atom_spinlock(ptr) while (__sync_lock_test_and_set(ptr,1)) {}
+#define atom_spinunlock(ptr) __sync_lock_release(ptr)
+
+#endif
+
+/* spin lock */
+#define spin_lock(Q) atom_spinlock(&(Q)->lock)
+#define spin_unlock(Q) atom_spinunlock(&(Q)->lock)
+
+/* read write lock */
+
+struct rwlock {
+	int write;
+	int read;
+};
+
+void rwlock_init(struct rwlock *lock);
+void rwlock_rlock(struct rwlock *lock);
+void rwlock_wlock(struct rwlock *lock);
+void rwlock_wunlock(struct rwlock *lock);
+void rwlock_runlock(struct rwlock *lock);
+
+#endif

@@ -6,4 +6,4 @@ if $(am --help 2>&1 | grep -q -i "to-intent-uri") ; then
   fi
 fi
 echo "Non-Termux shell detected, running normally"
-LD_LIBRARY_PATH=$(pwd)/build/install/lib ./build/install/bin/emu_main_cli
+LD_LIBRARY_PATH=$(pwd)/build_install/lib ./build_install/bin/emu_main_cli

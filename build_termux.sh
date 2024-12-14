@@ -2,9 +2,9 @@ set -e -o pipefail
 
 echo "building..."
 apt update
-apt upgrade
-apt install wget ed
-apt install openjdk-21 cups
+apt upgrade -y
+apt install -y wget ed
+apt install -y openjdk-21 cups
 . $PREFIX/etc/profile
 if [[ ! -e android_sdk ]] ; then
   mkdir android_sdk

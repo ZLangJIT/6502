@@ -6150,6 +6150,8 @@ StatusCode Asm::ApplyDirective(AssemblerDirective dir, strref line, strref sourc
 			}
 			return ERROR_UNABLE_TO_PROCESS;
 
+		default:
+			return error;
 	}
 	return error;
 }

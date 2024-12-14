@@ -26,6 +26,6 @@ else
   cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
 fi
 cmake --build build
-cmake --install build --prefix=$(pwd)/build/install
+cmake --install build --prefix=$(pwd)/build_install
 echo "built"
 #ls -l --color build/{install,install/*}

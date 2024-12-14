@@ -6,6 +6,24 @@
 #include <cstring>
 #include <string>
 
+#include <iostream>
+
+#include <string>
+#include <vector>
+#include <iostream>
+#include <memory>
+#include <string>
+
+#include <stddef.h>
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <filesystem>
+
+extern "C" int show_ui();
+
 uint8_t * ram;
 
 uint8_t MemRead(uint16_t addr, bool isDbg) {
@@ -87,6 +105,7 @@ void outputStep(VrEmu6502* vr6502, uint16_t pc) {
 }
 
 int main(int argc, char* argv[]) {
+  show_ui();
   VrEmu6502* vr6502 = vrEmu6502New(CPU_6502, MemRead, MemWrite);
   if (vr6502 == nullptr) {
     puts("failed to create vcpu");
@@ -95,15 +114,15 @@ int main(int argc, char* argv[]) {
   ram = reinterpret_cast<uint8_t*>(malloc(4096*65));
   memset(ram, 0x0, 4096*65);
   pc = 0x0;
-  // ram[pc+0] = 0xa5; ram[pc+1] = 0x06; // lda 6
-  // ram[pc+2] = 0xa5; ram[pc+3] = 0x07; // lda 7
-  ram[pc+0] = 0xe6; ram[pc+1] = 0x01; // inc 1
-  ram[pc+2] = 0xe6; ram[pc+3] = 0x01; // inc 1
-  ram[pc+4] = 0xdb;                   // stp
+  ram[pc+0] = 0x0;                    // data
+  ram[++pc] = 0xe6; ram[++pc] = 0x02; // inc 0x2
+  ram[++pc] = 0xe6; ram[++pc] = 0x02; // inc 0x2
+  ram[++pc] = 0xe6; ram[++pc] = 0x02; // inc 0x2
+  ram[++pc] = 0xdb;                   // stp
 
   // 6502 reset vector - set this to the PC to start executing from
   ram[0xfffd] = 0x0; // high
-  ram[0xfffc] = 0x0; // low
+  ram[0xfffc] = 0x1; // low
   
   printf("\nResetting...\n");
   vrEmu6502Reset(vr6502);
@@ -112,17 +131,19 @@ int main(int argc, char* argv[]) {
     if (vrEmu6502GetOpcodeCycle(vr6502) == 0) {
       /* trap detection */
       uint16_t pc = vrEmu6502GetCurrentOpcodeAddr(vr6502);
-      outputStep(vr6502, pc);
-      printf("\nCurrent instruction:");
-      ++instructionCount;
 
       /* break on STP instruction */
       if (vrEmu6502GetCurrentOpcode(vr6502) == 0xdb) {
+        ++instructionCount;
         printf("\nFinal instruction (opcode == 0xdb):");
         outputStep(vr6502, vrEmu6502GetCurrentOpcodeAddr(vr6502));
         status = 0;
         break;
       }
+
+      printf("\nCurrent instruction:");
+      outputStep(vr6502, pc);
+      ++instructionCount;
     }
 
     /* call me once for each clock cycle (eg. 1,000,000 times per second for a 1MHz clock) */
