@@ -750,8 +750,6 @@ void android_main(struct android_app *pApp) {
         
         		nvgBeginFrame(p->vg, p->w, p->h, pxRatio);
         		
-        		nvg
-        		
         		// https://github.com/mgood7123/mps
         		// https://github.com/mgood7123/ManagedObject
         		// https://github.com/mgood7123/ManagedObject/blob/main/include/managed_object_obj.h
@@ -766,6 +764,8 @@ void android_main(struct android_app *pApp) {
         		// prebuilt for android
         		// https://github.com/MJx0/KittyMemory/blob/master/KittyMemory/Deps/Keystone
         		
+        		// Android-like C++ ui
+        		// https://github.com/houstudio/cdroid
 
         		nvgEndFrame(p->vg);
         		
