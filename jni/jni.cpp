@@ -760,6 +760,11 @@ void android_main(struct android_app *pApp) {
         		// https://github.com/yushroom/FishGUI
         		// https://github.com/kublasean/RecyclerViewQt/tree/main/recycler
         		// https://github.com/ridiculousfish/libdivide
+        		// https://github.com/ocornut/imgui/tree/master/backends
+        		// https://github.com/Trilloxa/Glass-UI
+        		
+        		// prebuilt for android
+        		// https://github.com/MJx0/KittyMemory/blob/master/KittyMemory/Deps/Keystone
         		
 
         		nvgEndFrame(p->vg);
