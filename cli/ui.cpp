@@ -109,6 +109,110 @@ void * create_text_integer(int * value) {
   return new ComponentHolder(ftxui::Renderer([=]{return ftxui::text(std::to_string(*value));}));
 }
 
+void * create_text_hex1(uint8_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 1;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
+void * create_text_hex2(uint8_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 2;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
+void * create_text_hex3(uint16_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 3;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
+void * create_text_hex4(uint16_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 4;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
+void * create_text_hex5(uint32_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 5;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
+void * create_text_hex6(uint32_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 6;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
+void * create_text_hex7(uint64_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 5;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
+void * create_text_hex8(uint64_t * value, char * buffer) {
+  return new ComponentHolder(ftxui::Renderer([=]{
+    int x = *value;
+    int place = 8;
+    buffer[place] = '\0';
+    while (place > 0) {
+      buffer[--place] = "0123456789ABCDEF"[x & 15];
+      x >>= 4;
+    }
+    return ftxui::text(buffer);
+  }));
+}
+
 void * create_list(void ** list, int size, bool is_vertical) {
   return new ComponentHolder(
     is_vertical ? 

@@ -1,18 +1,26 @@
 #include <stdio.h>
 #include <vector>
 
-#define EGL_EGLEXT_PROTOTYPES
-#define GL_GLEXT_PROTOTYPES
-
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
 #if __ANDROID__
 #include <android/log.h>
 #include <android/native_window_jni.h>
 #include <android/hardware_buffer.h>
 #endif
+
+#include <nanovg.h>
+#define EGL_EGLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#include <GLES3/gl3.h>
+#include <GLES3/gl3ext.h>
+#define NANOVG_GLES3_IMPLEMENTATION
+#include <nanovg_gl.h>
+#include <nanovg_gl_utils.h>
+// #include "nanovg/example/perf.h"
+// #include "nanovg/example/perf.c"
 
 #include <stdarg.h>
 #include <cassert>
@@ -327,6 +335,7 @@ bool init_egl() {
   }
   return false;
 }
+
 bool deinit_egl() {
   if (egl_display != EGL_NO_DISPLAY) {
     os_egl_check_errorIf(!eglTerminate(egl_display), {
@@ -373,21 +382,44 @@ int main(int argc, char* argv[]) {
   
   os_egl_check_errorIf(!eglChooseConfig(egl_display, configAttribs, &cfg, 1, &numConfigs), {
     os_egl_check_errorIf(!eglChooseConfig(egl_display, configAttribs2, &cfg, 1, &numConfigs), {
+    	LOG_ERROR("Could not find a compatible configuration");
       deinit_egl();
       return 0;
     })
   });
   
-  os_egl_check_errorIf_((ctx = eglCreateContext(egl_display, cfg, nullptr, ctxattribs)), !=, EGL_NO_CONTEXT, {
+  os_egl_check_errorIf_((ctx = eglCreateContext(egl_display, cfg, nullptr, ctxattribs)), ==, EGL_NO_CONTEXT, {
+    	LOG_ERROR("Could not create a context");
       deinit_egl();
       return 0;
   });
   os_egl_check_errorIf(!eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), {
+    	LOG_ERROR("Could not make context current");
+      os_egl_check_error(eglDestroyContext(egl_display, ctx));
+      deinit_egl();
+      return 0;
+  });
+  const EGLint pbufferAttributes[] = {
+          EGL_WIDTH, 100,
+          EGL_HEIGHT, 100,
+          EGL_NONE,
+  };
+  os_egl_check_errorIf_((sfc = eglCreatePbufferSurface(egl_display, cfg, pbufferAttributes)), ==, 0, {
+    	LOG_ERROR("Could not create a pixel buffer surface");
+      os_egl_check_error(eglDestroyContext(egl_display, ctx));
+      deinit_egl();
+      return 0;
+  });
+
+  os_egl_check_errorIf(!eglMakeCurrent(egl_display, sfc, sfc, ctx), {
+    	LOG_ERROR("Could not make context current");
+      os_egl_check_error(eglDestroySurface(egl_display, sfc));
       os_egl_check_error(eglDestroyContext(egl_display, ctx));
       deinit_egl();
       return 0;
   });
   #if __ANDROID__
+	  LOG_INFO("Checking texture compatibility...");
     {
         // Some devices do not support sampling from HAL_PIXEL_FORMAT_BGRA_8888, here we are checking it.
         const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
@@ -430,8 +462,8 @@ int main(int argc, char* argv[]) {
             goto DONE;
         });
 
-        os_egl_check_error((img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes));
-        if (!image) {
+        os_egl_check_error((img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes)));
+        if (!img) {
             if (os_egl_last_error == EGL_BAD_PARAMETER) {
                 LOG_ERROR("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
                 // *flip = 1;
@@ -464,7 +496,7 @@ int main(int argc, char* argv[]) {
             EGLConfig checkcfg = 0;
             GLuint fbo = 0, texture = 0;
             os_egl_check_errorIf(!eglChooseConfig(egl_display, configAttributes, &checkcfg, 1, &numConfigs), {
-                LOG_ERROR("EGL: check eglChooseConfig failed.\n");
+                LOG_ERROR("EGL: check eglChooseConfig failed.");
                 os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
@@ -472,7 +504,7 @@ int main(int argc, char* argv[]) {
 
             EGLContext testctx;
             os_egl_check_errorIf_((testctx = eglCreateContext(egl_display, checkcfg, nullptr, ctxattribs)), ==, EGL_NO_CONTEXT, {
-                LOG_ERROR("EGL: check eglCreateContext failed.\n");
+                LOG_ERROR("EGL: check eglCreateContext failed.");
                 os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
                 goto DONE;
@@ -484,8 +516,8 @@ int main(int argc, char* argv[]) {
                     EGL_NONE,
             };
             EGLSurface checksfc;
-            os_egl_check_errorIf_((checksfc = eglCreatePbufferSurface(egl_display, checkcfg, pbufferAttributes))), ==, 0, {
-                LOG_ERROR("EGL: check eglCreatePbufferSurface failed.\n");
+            os_egl_check_errorIf_((checksfc = eglCreatePbufferSurface(egl_display, checkcfg, pbufferAttributes)), ==, 0, {
+                LOG_ERROR("EGL: check eglCreatePbufferSurface failed.");
                 os_egl_check_error(eglDestroyContext(egl_display, testctx));
                 os_egl_check_error(eglDestroyImageKHR(egl_display, img));
                 AHardwareBuffer_release(new_);
@@ -493,7 +525,7 @@ int main(int argc, char* argv[]) {
             });
 
             os_egl_check_errorIf(!eglMakeCurrent(egl_display, checksfc, checksfc, testctx), {
-                LOG_ERROR("EGL: check eglMakeCurrent failed.\n");
+                LOG_ERROR("EGL: check eglMakeCurrent failed.");
                 os_egl_check_error(eglDestroySurface(egl_display, checksfc));
                 os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
                 os_egl_check_error(eglDestroyContext(egl_display, testctx));
@@ -516,8 +548,8 @@ int main(int argc, char* argv[]) {
             uint32_t pixel[64*64];
             os_gl_check_error(glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel));
             if (pixel[0] == 0xAABBCCDD) {
-                LOG_ERROR("GLES: GLES draws pixels unchanged, probably system does not support AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM. Forcing bgra.\n");
-                //*flip = 1;
+                LOG_ERROR("GLES: GLES draws pixels unchanged, probably system does not support AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM. Forcing bgra.");
+                // *flip = 1;
                 os_egl_check_error(eglDestroySurface(egl_display, checksfc));
                 os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
                 os_egl_check_error(eglDestroyContext(egl_display, testctx));
@@ -525,7 +557,7 @@ int main(int argc, char* argv[]) {
                 AHardwareBuffer_release(new_);
                 goto DONE;
             } else if (pixel[0] != 0xAADDCCBB) {
-                LOG_ERROR("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X\n", pixel[0]);
+                LOG_ERROR("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X", pixel[0]);
                 os_egl_check_error(eglDestroySurface(egl_display, checksfc));
                 os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
                 os_egl_check_error(eglDestroyContext(egl_display, testctx));
@@ -539,9 +571,51 @@ int main(int argc, char* argv[]) {
             os_egl_check_error(eglDestroyImageKHR(egl_display, img));
             AHardwareBuffer_release(new_);
         }
-    DONE:
     }
   #endif
+
+  DONE:
+  #if __ANDROID__
+	LOG_INFO("Checked texture compatibility");
+	#endif
+	NVGcontext* vg = NULL;
+
+	vg = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
+	if (vg == NULL) {
+		LOG_ERROR("Could not init nanovg.");
+		return 0;
+	}
+
+	while (true) {
+		int fbWidth = 100;
+		int fbHeight = 100;
+		int winWidth = 100;
+		int winHeight = 100;
+		float pxRatio = (float)fbWidth / (float)winWidth;
+
+		// Update and render
+		glViewport(0, 0, winWidth, winHeight);
+		glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+
+		nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+
+		nvgEndFrame(vg);
+
+		eglSwapBuffers(egl_display, sfc);
+	}
+
+	nvgDeleteGLES3(vg);
+
+  os_egl_check_error(eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+
+  os_egl_check_error(eglDestroySurface(egl_display, sfc));
+  os_egl_check_error(eglDestroyContext(egl_display, ctx));
   deinit_egl();
   return 0;
 }

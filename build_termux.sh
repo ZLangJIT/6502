@@ -38,14 +38,11 @@ export ANDROID_NDK=$(pwd)/android_sdk/android-ndk-r27b
 export ANDROID_SDK=$ANDROID_HOME
 export ANDROID_SDK_HOME=$ANDROID_SDK
 export ANDROID_NDK_HOME=$ANDROID_NDK
-#export PYTHONHOME=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-aarch64/python3
-#export LD_LIBRARY_PATH=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-aarch64/python3/lib
 export PATH=$ANDROID_SDK/build-tools/35.0.0:$PATH
 export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$PATH
 export PATH=$ANDROID_SDK/platform-tools:$PATH
 export PATH=$ANDROID_SDK/cmake/bin:$PATH
 export PATH=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-aarch64/bin:$PATH
-#export PATH=$JAVA_HOME/bin:$PATH
 
 cd apk
 GRADLE_FILE=build.gradle.kts
@@ -95,7 +92,6 @@ if ! ./gradlew build --console rich --configuration-cache --build-cache ; then
   exit 1
 fi
 echo "cleaning up..."
-mv version_old version
 mv local.properties.old local.properties
 mv app/${GRADLE_FILE}.old app/${GRADLE_FILE}
 cd ..

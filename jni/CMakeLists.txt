@@ -2,22 +2,7 @@ cmake_minimum_required(VERSION 3.18.8)
 
 project("emu_main_jni")
 
-add_library(emu_main_jni SHARED
-	jni.cpp
-        #game/Pong.cpp
-        #game/Cube3D.cpp
-        #base/RBGame.cpp
-        #base/RBGameObject.cpp
-        #base/RBColor.cpp
-        #base/RBRenderHelper.cpp
-        #base/RBRenderer.cpp
-        #base/RBShader.cpp
-        #base/RBClock.cpp
-        #base/RBMath.cpp
-        #base/RBLog.cpp
-)
-
-target_include_directories(emu_main_jni PRIVATE game base)
+add_library(emu_main_jni SHARED jni.cpp)
 
 find_package(game-activity REQUIRED CONFIG)
 
@@ -29,6 +14,20 @@ target_link_libraries(emu_main_jni
         GLESv3
         jnigraphics
         log
+        nanovg
+        handlemap
+        simplelock
+        simplethread
 )
 
 add_executable(executable__emu_main_jni_client.so jni_client.cpp)
+target_link_libraries(executable__emu_main_jni_client.so PRIVATE
+        android
+        EGL
+        GLESv3
+        log
+        nanovg
+        handlemap
+        simplelock
+        simplethread
+)

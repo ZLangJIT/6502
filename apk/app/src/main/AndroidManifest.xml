@@ -14,7 +14,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.OpenGLTutorial"
-        tools:targetApi="31">
+        tools:targetApi="35">
         <service android:name=".IRCService" android:foregroundServiceType="mediaPlayback" />
         <receiver
             android:name=".IRCService$ExitActionReceiver"
