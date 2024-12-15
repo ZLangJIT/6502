@@ -750,6 +750,11 @@ void android_main(struct android_app *pApp) {
         
         		nvgBeginFrame(p->vg, p->w, p->h, pxRatio);
         		
+        		nvg
+        		
+        		// https://github.com/mgood7123/mps
+        		// https://github.com/mgood7123/ManagedObject
+        		// https://github.com/mgood7123/ManagedObject/blob/main/include/managed_object_obj.h
         		// https://github.com/styluslabs/nanovgXC
         		// https://github.com/wjakob/nanogui/blob/master/src/glcanvas.cpp
         		// https://github.com/yushroom/FishGUI
