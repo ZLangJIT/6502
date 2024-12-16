@@ -6,7 +6,5 @@
 /android_sdk
 /build
 /build_install
-/keystone
 /_keystone*
-/capstone
 /_capstone*
