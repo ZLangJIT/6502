@@ -18,7 +18,16 @@ endif()
 #target_link_libraries(ui PRIVATE ui_cxx handlemap)
 
 add_library(common INTERFACE)
-target_link_libraries(common INTERFACE vrEmu6502 nanovg handlemap simplelock simplethread)
+target_link_libraries(common INTERFACE
+  vrEmu6502
+  keystone
+  capstone
+  imgui
+  nanovg
+  handlemap
+  simplelock
+  simplethread
+)
 
 if(UNIX AND ANDROID AND NOT TERMUX)
   add_executable(executable__emu_main_cli.so main2.cpp)

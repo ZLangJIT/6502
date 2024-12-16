@@ -14,6 +14,9 @@ target_link_libraries(emu_main_jni
         GLESv3
         jnigraphics
         log
+        keystone
+        capstone
+        imgui
         nanovg
         handlemap
         simplelock
@@ -26,6 +29,9 @@ target_link_libraries(executable__emu_main_jni_client.so PRIVATE
         EGL
         GLESv3
         log
+        keystone
+        capstone
+        imgui
         nanovg
         handlemap
         simplelock

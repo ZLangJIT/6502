@@ -767,6 +767,9 @@ void android_main(struct android_app *pApp) {
         		// Android-like C++ ui
         		// https://github.com/houstudio/cdroid
 
+            // auto& io = ImGui::GetIO();
+            // ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
+
         		nvgEndFrame(p->vg);
         		
         		if (swap_surface_egl(p->sfc) == EGL_NO_SURFACE) {
