@@ -17,25 +17,9 @@ public class MainActivity extends GameActivity {
         System.loadLibrary("emu_main_jni");
     }
     
-    // final BroadcastReceiver foo = new BroadcastReceiver() {
-    //     @Override
-    //     public void onReceive(Context context, Intent intent) {
-    //         MainActivity a = (MainActivity)context;
-    //         a.unregisterReceiver(this);
-    //         a.finish();
-    //     }
-    // };
-
     private static final String TAG = "MainActivity";
     
     private static String determineTermuxArchName() {
-      // Note that we cannot use System.getProperty("os.arch") since that may give e.g. "aarch64"
-      // while a 64-bit runtime may not be installed (like on the Samsung Galaxy S5 Neo).
-      // Instead we search through the supported abi:s on the device, see:
-      // http://developer.android.com/ndk/guides/abis.html
-      // Note that we search for abi:s in preferred order (the ordering of the
-      // Build.SUPPORTED_ABIS list) to avoid e.g. installing arm on an x86 system where arm
-      // emulation is available.
       for (String androidArch : Build.SUPPORTED_ABIS) {
         switch (androidArch) {
           case "arm64-v8a": return "aarch64";
@@ -49,13 +33,6 @@ public class MainActivity extends GameActivity {
     }
 
     private static String determineTermuxLibName() {
-      // Note that we cannot use System.getProperty("os.arch") since that may give e.g. "aarch64"
-      // while a 64-bit runtime may not be installed (like on the Samsung Galaxy S5 Neo).
-      // Instead we search through the supported abi:s on the device, see:
-      // http://developer.android.com/ndk/guides/abis.html
-      // Note that we search for abi:s in preferred order (the ordering of the
-      // Build.SUPPORTED_ABIS list) to avoid e.g. installing arm on an x86 system where arm
-      // emulation is available.
       for (String androidArch : Build.SUPPORTED_ABIS) {
         switch (androidArch) {
           case "arm64-v8a": return "arm64-v8a";

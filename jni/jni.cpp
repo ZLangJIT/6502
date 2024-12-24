@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <vector>
 
-#if __ANDROID__
+#include "imgui.h"
+#include "imgui_impl_android.h"
+#include "imgui_impl_opengl3.h"
 #include <android/log.h>
 #include <android/native_window_jni.h>
 #include <android/hardware_buffer.h>
-#endif
 
 #include <nanovg.h>
 #define EGL_EGLEXT_PROTOTYPES
@@ -386,12 +387,12 @@ EGLSurface create_window_surface_egl(ANativeWindow * window, int & width, int & 
   height = window ? ANativeWindow_getHeight(window) : 0;
   os_log_info("window %p dimensions %dx%d", window, width, height);
 
-    if (window && (width <= 0 || height <= 0)) {
-        os_log_error("We've got invalid surface. Probably it became invalid before we started working with it.");
-        return sfc;
-    }
+  if (window && (width <= 0 || height <= 0)) {
+      os_log_error("We've got invalid surface. Probably it became invalid before we started working with it.");
+      return sfc;
+  }
 
-    if (!window) return sfc;
+  if (!window) return sfc;
   os_egl_check_errorIf_((sfc = eglCreateWindowSurface(egl_display, cfg, window, nullptr)), ==, 0, {
     	os_log_error("Could not create a window surface");
       return sfc;
@@ -628,17 +629,29 @@ bool create_context_egl() {
 
 extern "C" {
 
-bool motion_event_filter_func(const GameActivityMotionEvent *motionEvent) {
-    auto sourceClass = motionEvent->source & AINPUT_SOURCE_CLASS_MASK;
-    return (sourceClass == AINPUT_SOURCE_CLASS_POINTER ||
-            sourceClass == AINPUT_SOURCE_CLASS_JOYSTICK);
+bool key_event_filter(const GameActivityKeyEvent *event)
+{
+	if (event->source == AINPUT_SOURCE_KEYBOARD)
+	{
+		return true;
+	}
+	return false;
+}
+
+bool motion_event_filter(const GameActivityMotionEvent *event)
+{
+	if ((event->source == AINPUT_SOURCE_MOUSE) ||
+	    (event->source == AINPUT_SOURCE_TOUCHSCREEN))
+	{
+		return true;
+	}
+	return false;
 }
 
 struct GLData {
   EGLSurface sfc = EGL_NO_SURFACE;
   int w = 0;
   int h = 0;
-  NVGcontext* vg = nullptr;
 };
 
 #include <game-activity/native_app_glue/android_native_app_glue.c>
@@ -658,20 +671,22 @@ struct GLData {
                   deinit_egl();
                 } else {
                   if (set_surface_current(sfc)) {
-                  	NVGcontext* vg = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
-                  	if (vg == NULL) {
-                  		os_log_error("Could not init nanovg.");
-                      destroy_surface_egl(sfc);
-                      destroy_context_egl();
-                      deinit_egl();
-                  	} else {
-                      GLData * p = new GLData;
-                      p->sfc = sfc;
-                      p->w = w;
-                      p->h = h;
-                      p->vg = vg;
-                      pApp->userData = p;
-                  	}
+                    // Setup Dear ImGui context
+                    GLData * p = new GLData;
+                    IMGUI_CHECKVERSION();
+                    ImGui::CreateContext();
+                    ImGuiIO& io = ImGui::GetIO();
+                    ImGui::StyleColorsDark();
+                    ImGui_ImplAndroid_Init(pApp->window);
+                    ImGui_ImplOpenGL3_Init("#version 300 es");
+                    ImFontConfig font_cfg;
+                    font_cfg.SizePixels = 22.0f;
+                    io.Fonts->AddFontDefault(&font_cfg);
+                    ImGui::GetStyle().ScaleAllSizes(3.0f);
+                    p->sfc = sfc;
+                    p->w = w;
+                    p->h = h;
+                    pApp->userData = p;
                   } else {
                     destroy_surface_egl(sfc);
                     destroy_context_egl();
@@ -682,10 +697,13 @@ struct GLData {
             }
             break;
         case APP_CMD_TERM_WINDOW:
-            set_no_surface_current();
             if (pApp->userData) {
               GLData * p = reinterpret_cast<GLData*>(pApp->userData);
-            	nvgDeleteGLES3(p->vg);
+              ImGui_ImplOpenGL3_Shutdown();
+              ImGui_ImplAndroid_Shutdown();
+              ImGui::DestroyContext();
+              //nvgDeleteGLES3(p->vg);
+              set_no_surface_current();
               destroy_surface_egl(p->sfc);
               pApp->userData = 0x0;
               delete p;
@@ -698,12 +716,53 @@ struct GLData {
     }
 }
 
+int32_t handle_input(struct android_app* app) {
+  auto inputBuffer = android_app_swap_input_buffers(app);
+  auto& io = ImGui::GetIO();
+  if (inputBuffer == nullptr) {
+    return 0;
+  }
+
+  int32_t processed = 0;
+  for (int i = 0; i < inputBuffer->motionEventsCount; ++i) {
+    auto& event = inputBuffer->motionEvents[i];
+    auto action = event.action;
+    auto pointerIndex = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)>> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+    auto& pointer = event.pointers[pointerIndex];
+    auto x= GameActivityPointerAxes_getX(&pointer);
+    auto y = GameActivityPointerAxes_getY(&pointer);
+    auto scrollH = GameActivityPointerAxes_getAxisValue(&pointer, AMOTION_EVENT_AXIS_HSCROLL);
+    auto scrollV = GameActivityPointerAxes_getAxisValue(&pointer, AMOTION_EVENT_AXIS_VSCROLL);
+
+    switch(action & AMOTION_EVENT_ACTION_MASK) {
+      case AMOTION_EVENT_ACTION_DOWN:
+      case AMOTION_EVENT_ACTION_UP:
+        io.AddMousePosEvent(x, y);
+        io.AddMouseButtonEvent(0, action == AMOTION_EVENT_ACTION_DOWN);
+        processed = 1;
+        break;
+
+      case AMOTION_EVENT_ACTION_HOVER_MOVE:
+      case AMOTION_EVENT_ACTION_MOVE:
+        io.AddMousePosEvent(x, y);
+        processed = 1;
+        break;
+
+      default:
+        break;
+    }
+  }
+  android_app_clear_motion_events(inputBuffer);
+  return processed;
+}
+
 void android_main(struct android_app *pApp) {
     os_log_info("Welcome to android_main");
 
     pApp->onAppCmd = handle_cmd;
 
-    android_app_set_motion_event_filter(pApp, motion_event_filter_func);
+    android_app_set_key_event_filter(pApp, key_event_filter);
+    android_app_set_motion_event_filter(pApp, motion_event_filter);
 
     do {
         bool done = false;
@@ -736,46 +795,59 @@ void android_main(struct android_app *pApp) {
           // AHardwareBuffer_sendHandleToUnixSocket
           // AHardwareBuffer_recvHandleFromUnixSocket
           if (p->sfc != EGL_NO_SURFACE && eglGetCurrentContext() != EGL_NO_CONTEXT) {
-        		float pxRatio = (float)p->w / (float)p->w;
-        
-        		// Update and render
-        		glViewport(0, 0, p->w, p->h);
-        		glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
-        		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-        
-        		glEnable(GL_BLEND);
-        		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        		glEnable(GL_CULL_FACE);
-        		glDisable(GL_DEPTH_TEST);
-        
-        		nvgBeginFrame(p->vg, p->w, p->h, pxRatio);
-        		
-        		// https://github.com/mgood7123/mps
-        		// https://github.com/mgood7123/ManagedObject
-        		// https://github.com/mgood7123/ManagedObject/blob/main/include/managed_object_obj.h
-        		// https://github.com/styluslabs/nanovgXC
-        		// https://github.com/wjakob/nanogui/blob/master/src/glcanvas.cpp
-        		// https://github.com/yushroom/FishGUI
-        		// https://github.com/kublasean/RecyclerViewQt/tree/main/recycler
-        		// https://github.com/ridiculousfish/libdivide
-        		// https://github.com/ocornut/imgui/tree/master/backends
-        		// https://github.com/Trilloxa/Glass-UI
-        		
-        		// prebuilt for android
-        		// https://github.com/MJx0/KittyMemory/blob/master/KittyMemory/Deps/Keystone
-        		
-        		// Android-like C++ ui
-        		// https://github.com/houstudio/cdroid
+            handle_input(pApp);
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplAndroid_NewFrame();
+            ImGui::NewFrame();
+            auto& io = ImGui::GetIO();
+            ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::End();
+            ImGui::Render();
+            float pxRatio = (float)p->w / (float)p->w;
+            glViewport(0, 0, p->w, p->h);
+            ImDrawData* draw_data = ImGui::GetDrawData();
+            if (draw_data != nullptr) {
+              glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+              glClear(GL_COLOR_BUFFER_BIT);
+              ImGui_ImplOpenGL3_RenderDrawData(draw_data);
+            } else {
+              glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+              glClear(GL_COLOR_BUFFER_BIT);
+            }
+            //glEnable(GL_BLEND);
+            //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            //glEnable(GL_CULL_FACE);
+            //glDisable(GL_DEPTH_TEST);
+            //nvgBeginFrame(p->vg, p->w, p->h, pxRatio);
+            // https://github.com/mgood7123/mps
+            // https://github.com/mgood7123/ManagedObject
+            // https://github.com/mgood7123/ManagedObject/blob/main/include/managed_object_obj.h
+            // https://github.com/styluslabs/nanovgXC
+            // https://github.com/wjakob/nanogui/blob/master/src/glcanvas.cpp
+            // https://github.com/yushroom/FishGUI
+            // https://github.com/kublasean/RecyclerViewQt/tree/main/recycler
+            // https://github.com/ridiculousfish/libdivide
+            // https://github.com/ocornut/imgui/tree/master/backends
+            // https://github.com/Trilloxa/Glass-UI
+
+            // prebuilt for android
+            // https://github.com/MJx0/KittyMemory/blob/master/KittyMemory/Deps/Keystone
+
+            // Android-like C++ ui
+            // https://github.com/houstudio/cdroid
 
             // auto& io = ImGui::GetIO();
             // ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
 
-        		nvgEndFrame(p->vg);
-        		
-        		if (swap_surface_egl(p->sfc) == EGL_NO_SURFACE) {
+            //nvgEndFrame(p->vg);
+            if (swap_surface_egl(p->sfc) == EGL_NO_SURFACE) {
+              ImGui_ImplOpenGL3_Shutdown();
+              ImGui_ImplAndroid_Shutdown();
+              ImGui::DestroyContext();
               set_no_surface_current();
               destroy_surface_egl(p->sfc);
-        		}
+            }
           }
         }
     } while (!pApp->destroyRequested);

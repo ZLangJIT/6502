@@ -4,8 +4,10 @@ cd /data/data/com.termux/files/home/6502-OS
 
 apt update
 apt upgrade -y
-apt install -y wget pkg-config
-apt install -y openjdk-21 cups
+apt install -y wget pkg-config automake libtool m4 gettext openjdk-21 cups
+apt remove --autoremove -y python-pip
+#apt install -y python-pip
+#pip install meson
 . /data/data/com.termux/files/usr/etc/profile
 if [[ ! -e android_sdk ]] ; then
   mkdir android_sdk

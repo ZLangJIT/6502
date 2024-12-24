@@ -100,12 +100,26 @@ public:
     }
 
     const KeyT EmptyKey = getEmptyKey(), TombstoneKey = getTombstoneKey();
+#ifdef NDEBUG
+#else
+# if defined(__cplusplus) || __STDC_VERSION__ >= 199901L
     unsigned NumEntries = getNumEntries();
+# else
+    unsigned NumEntries = getNumEntries();
+# endif
+#endif
     for (BucketT *P = getBuckets(), *E = getBucketsEnd(); P != E; ++P) {
       if (!KeyInfoT::isEqual(P->getFirst(), EmptyKey)) {
         if (!KeyInfoT::isEqual(P->getFirst(), TombstoneKey)) {
           P->getSecond().~ValueT();
+#ifdef NDEBUG
+#else
+# if defined(__cplusplus) || __STDC_VERSION__ >= 199901L
           --NumEntries;
+# else
+          --NumEntries;
+# endif
+#endif
         }
         P->getFirst() = EmptyKey;
       }

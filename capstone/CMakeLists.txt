@@ -23,7 +23,7 @@ project(capstone
     VERSION 6.0
 )
 
-set(UNIX_COMPILER_OPTIONS -Werror -Wall -Warray-bounds -Wshift-negative-value -Wreturn-type -Wformat -Wmissing-braces -Wunused-function -Warray-bounds -Wunused-variable -Wparentheses -Wint-in-bool-context -Wmisleading-indentation)
+set(UNIX_COMPILER_OPTIONS -Wall -Warray-bounds -Wshift-negative-value -Wreturn-type -Wformat -Wmissing-braces -Wunused-function -Warray-bounds -Wunused-variable -Wparentheses -Wint-in-bool-context -Wmisleading-indentation)
 
 # maybe-uninitialized is only supported by newer versions of GCC.
 # Unfortunately, it is pretty unreliable and reports wrong results.
@@ -58,10 +58,10 @@ option(CAPSTONE_BUILD_SHARED_LIBS "Build shared library" OFF)
 option(CAPSTONE_BUILD_STATIC_LIBS "Build static library" ON)
 option(CAPSTONE_BUILD_STATIC_MSVC_RUNTIME "Embed static MSVC runtime (Windows only). Always set if CAPSTONE_BUILD_SHARED_LIBS=ON" ${CAPSTONE_BUILD_SHARED_LIBS})
 option(CAPSTONE_BUILD_MACOS_THIN "Disable universal2 builds on macOS" OFF)
-option(CAPSTONE_BUILD_DIET "Build diet library" ON)
+option(CAPSTONE_BUILD_DIET "Build diet library" OFF)
 option(CAPSTONE_BUILD_LEGACY_TESTS "Build legacy tests" ${PROJECT_IS_TOP_LEVEL})
 option(CAPSTONE_BUILD_CSTOOL "Build cstool" ON)
-option(CAPSTONE_BUILD_CSTEST "Build cstest" ON)
+option(CAPSTONE_BUILD_CSTEST "Build cstest" OFF)
 option(CAPSTONE_USE_DEFAULT_ALLOC "Use default memory allocation functions" ON)
 option(CAPSTONE_USE_ARCH_REGISTRATION "Use explicit architecture registration" OFF)
 option(CAPSTONE_ARCHITECTURE_DEFAULT "Whether architectures are enabled by default" ON)
