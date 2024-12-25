@@ -107,7 +107,7 @@ public class MainActivity extends GameActivity {
         super.onWindowFocusChanged(hasFocus);
 
         if (hasFocus) {
-            //hideSystemUi();
+            hideSystemUi();
         }
     }
 

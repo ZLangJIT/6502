@@ -652,6 +652,7 @@ struct GLData {
   EGLSurface sfc = EGL_NO_SURFACE;
   int w = 0;
   int h = 0;
+  int32_t density;
 };
 
 #include <game-activity/native_app_glue/android_native_app_glue.c>
@@ -686,6 +687,7 @@ struct GLData {
                     p->sfc = sfc;
                     p->w = w;
                     p->h = h;
+                    p->density = AConfiguration_getDensity(pApp->config);
                     pApp->userData = p;
                   } else {
                     destroy_surface_egl(sfc);
@@ -764,6 +766,16 @@ void android_main(struct android_app *pApp) {
     android_app_set_key_event_filter(pApp, key_event_filter);
     android_app_set_motion_event_filter(pApp, motion_event_filter);
 
+    // Flags to control how the IME behaves.
+    // https://developer.android.com/reference/android/text/InputType
+    constexpr int InputType_dot_TYPE_CLASS_TEXT = 1;
+    constexpr int InputType_dot_TYPE_TEXT_FLAG_NO_SUGGESTIONS = 524288;
+    // https://developer.android.com/reference/android/view/inputmethod/EditorInfo
+    constexpr int IME_ACTION_NONE = 1;
+    constexpr int IME_FLAG_NO_FULLSCREEN = 33554432;
+    
+    GameActivity_setImeEditorInfo(pApp->activity, InputType_dot_TYPE_CLASS_TEXT, IME_ACTION_NONE, IME_FLAG_NO_FULLSCREEN);
+
     do {
         bool done = false;
         while (!done) {
@@ -804,7 +816,6 @@ void android_main(struct android_app *pApp) {
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
             ImGui::Render();
-            float pxRatio = (float)p->w / (float)p->w;
             glViewport(0, 0, p->w, p->h);
             ImDrawData* draw_data = ImGui::GetDrawData();
             if (draw_data != nullptr) {
