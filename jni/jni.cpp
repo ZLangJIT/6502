@@ -842,9 +842,6 @@ void android_main(struct android_app *pApp) {
             // https://github.com/ocornut/imgui/tree/master/backends
             // https://github.com/Trilloxa/Glass-UI
 
-            // prebuilt for android
-            // https://github.com/MJx0/KittyMemory/blob/master/KittyMemory/Deps/Keystone
-
             // Android-like C++ ui
             // https://github.com/houstudio/cdroid
 

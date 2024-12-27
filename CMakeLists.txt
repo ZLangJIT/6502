@@ -9,6 +9,11 @@ include(./build_root.cmake)
 
 build_root_init(${CMAKE_CURRENT_SOURCE_DIR}/cmake/packages ${CMAKE_CURRENT_BINARY_DIR}/BUILD_ROOT)
 
+add_library(nanovgXC STATIC nanovgXC/src/nanovg.c)
+target_include_directories(nanovgXC PUBLIC nanovgXC/src)
+install(TARGETS nanovgXC DESTINATION lib)
+
+if (false)
 build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/imgui_fonts . imgui_fonts
     "" # no extra c flags
     "" # no extra cxx flags
@@ -53,6 +58,7 @@ build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/harfbuzz-ft . harfbuzz_
     ""
     ""
 )
+endif()
 if (false)
 build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/libyaml . libyaml
     "" # no extra c flags
@@ -100,6 +106,7 @@ build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/keystone . keystone
 )
 endif()
 
+if (false)
 add_library(imgui_freetype
   imgui/misc/freetype/imgui_freetype.cpp
 )
@@ -126,6 +133,7 @@ install(TARGETS imgui DESTINATION lib)
 add_library(nanovg cli/nanovg/src/nanovg.c)
 target_include_directories(nanovg PUBLIC cli/nanovg/include)
 install(TARGETS nanovg DESTINATION lib)
+endif()
 
 add_library(simplelock cli/simplelock.c)
 target_include_directories(simplelock PUBLIC cli/include)

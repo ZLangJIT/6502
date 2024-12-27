@@ -3,6 +3,28 @@ cmake_minimum_required(VERSION 3.18.8)
 project("emu_main_jni")
 
 if (true)
+add_subdirectory(MultiTouch)
+
+add_library(emu_main_jni SHARED AppInstance/native-lib-nanovgXC.cpp)
+
+target_link_libraries(
+    emu_main_jni
+        android
+        EGL
+        GLESv3
+        jnigraphics
+        log
+        handlemap
+        simplelock
+        simplethread
+        emu_main
+        MultiTouch
+        nanovgXC
+)
+
+target_include_directories(emu_main_jni PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+else()
+if (true)
 
 # Diligent Engine exposes the following macros:
 #
@@ -106,4 +128,5 @@ target_link_libraries(executable__emu_main_jni_client.so PRIVATE
         simplelock
         simplethread
 )
+endif()
 endif()

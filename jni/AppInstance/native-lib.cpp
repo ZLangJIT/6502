@@ -411,7 +411,9 @@ void AppInstance::onDraw () {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
     ImGui::SetNextWindowPos({0, 0}); ImGui::SetNextWindowSize({400, 400});
-    ImGui::Begin("offscreen window", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings
+    ImGui::Begin("offscreen window", nullptr, 
+    0
+    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings
       //| ImGuiWindowFlags_NoBackground
     );
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
