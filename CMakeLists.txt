@@ -53,7 +53,7 @@ build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/harfbuzz-ft . harfbuzz_
     ""
     ""
 )
-
+if (false)
 build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/libyaml . libyaml
     "" # no extra c flags
     "" # no extra cxx flags
@@ -98,6 +98,7 @@ build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/keystone . keystone
     ""
     ""
 )
+endif()
 
 add_library(imgui_freetype
   imgui/misc/freetype/imgui_freetype.cpp

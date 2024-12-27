@@ -9,16 +9,11 @@ import android.os.Build;
 import android.view.View;
 import android.util.Log;
 import java.util.*;
+import smallville7123.graphical.tool.kit.DiligentEngineView;
 
-import com.google.androidgamesdk.GameActivity;
-
-public class MainActivity extends GameActivity {
-    static {
-        System.loadLibrary("emu_main_jni");
-    }
-    
+public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     private static final String TAG = "MainActivity";
-    
+
     private static String determineTermuxArchName() {
       for (String androidArch : Build.SUPPORTED_ABIS) {
         switch (androidArch) {
@@ -45,15 +40,17 @@ public class MainActivity extends GameActivity {
       Arrays.toString(Build.SUPPORTED_ABIS));
     }
 
+    DiligentEngineView diligentEngineView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         IRCService.FILES_DIR = getFilesDir().getPath();
         IRCService.ARCH_LIB = determineTermuxLibName();
         IRCService.ARCH_NAME = determineTermuxArchName();
-        
+
         String apk = getApplicationInfo().publicSourceDir;
-        
+
         Log.i(TAG, "extracting apk " + IRCService.ARCH_LIB + " libs...");
         net.lingala.zip4j.ZipFile z = new net.lingala.zip4j.ZipFile(apk);
         List<net.lingala.zip4j.model.FileHeader> headers = null;
@@ -96,6 +93,21 @@ public class MainActivity extends GameActivity {
         IRCService.createNotificationChannel(this);
         IRCService.start(this);
         //registerReceiver(foo, new IntentFilter("app.zlangjit.broadcast.service_exit_pressed"), Context.RECEIVER_NOT_EXPORTED);
+        diligentEngineView = new DiligentEngineView(this);
+        diligentEngineView.setPreserveEGLContextOnPause(true);
+        setContentView(diligentEngineView);
+    }
+
+    @Override
+    protected void onPause() {
+        diligentEngineView.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        diligentEngineView.onResume();
     }
 
     boolean saved_vis = false;
@@ -107,7 +119,7 @@ public class MainActivity extends GameActivity {
         super.onWindowFocusChanged(hasFocus);
 
         if (hasFocus) {
-            hideSystemUi();
+            //hideSystemUi();
         }
     }
 

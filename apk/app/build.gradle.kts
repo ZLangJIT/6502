@@ -53,7 +53,6 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
-        prefab = true
     }
 
     externalNativeBuild {
@@ -68,7 +67,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.games.activity)
     implementation("net.lingala.zip4j:zip4j:2.11.5")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

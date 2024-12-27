@@ -672,8 +672,8 @@ struct GLData {
                   deinit_egl();
                 } else {
                   if (set_surface_current(sfc)) {
-                    // Setup Dear ImGui context
                     GLData * p = new GLData;
+                    // Setup Dear ImGui context
                     IMGUI_CHECKVERSION();
                     ImGui::CreateContext();
                     ImGuiIO& io = ImGui::GetIO();
