@@ -164,32 +164,30 @@ void AppInstance::onEglSetup (
       w = 0;
       h = 0;
       vg = nvglCreate(NVGL_DEBUG);
-      vgsw = nvgswCreate(NVG_NO_FONTSTASH|NVG_SDF_TEXT);
-      vgsw_blitter = nvgswuCreateBlitter();
-      vgsw_blitter_fb = nullptr;
+      // vgsw = nvgswCreate(NVG_NO_FONTSTASH|NVG_SDF_TEXT);
+      // vgsw_blitter_fb = nullptr;
+      // vgsw_blitter = nvgswuCreateBlitter();
     }
 }
 
 void AppInstance::surfaceChanged (int w, int h) {
     this->w = w;
     this->h = h;
-    if (vgsw_blitter_fb != nullptr) {
-      delete[] vgsw_blitter_fb;
-      vgsw_blitter_fb = new uint8_t[w*h*4];
-    } else {
-      vgsw_blitter_fb = new uint8_t[w*h*4];
-    }
-    memset(vgsw_blitter_fb, 0x3F, w*h*4);
-    nvgswSetFramebuffer(vgsw, vgsw_blitter_fb, w, h, 0, 8, 16, 24);
+    // if (vgsw_blitter_fb != nullptr) {
+    //   delete[] vgsw_blitter_fb;
+    // }
+    // vgsw_blitter_fb = new uint8_t[w*h*4];
+    // memset(vgsw_blitter_fb, 0x3F, w*h*4);
+    // nvgswSetFramebuffer(vgsw, vgsw_blitter_fb, w, h, 0, 8, 16, 24);
 }
 
 void AppInstance::onEglTearDown (jboolean was_destroyed)
 {
   if (was_destroyed) {
-    nvgswDelete(vgsw);
+    // delete[] vgsw_blitter_fb;
+    // nvgswDelete(vgsw);
+    // nvgswuDeleteBlitter(vgsw_blitter);
     nvglDelete(vg);
-    delete[] vgsw_blitter_fb;
-    nvgswuDeleteBlitter(vgsw_blitter);
     h = 0;
     w = 0;
   }
@@ -206,6 +204,12 @@ void AppInstance::swapBuffers ()
     }
 }
 
+#include <flanterm.h>
+#include <flanterm_fb.h>
+
+void *_malloc(size_t s) { return malloc(s); }
+void _free(void * ptr, size_t s) { free(ptr); }
+
 void AppInstance::onDraw () {
     // we use an existing EGL context
     // Setup time step
@@ -215,15 +219,72 @@ void AppInstance::onDraw () {
     //ImGuiIO& io = ImGui::GetIO();
     //io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
     //g_Time = current_time;
-    NVGLUframebuffer* nvgFB = nvgluCreateFramebuffer(vg, 0, 0, NVGLU_NO_NVG_IMAGE);
-    int prevFBO = nvgluBindFramebuffer(nvgFB);
-    nvgluSetFramebufferSize(nvgFB, w, h, 0);
+
+    // NVGLUframebuffer* nvgFB = nvgluCreateFramebuffer(vg, 0, 0, NVGLU_NO_NVG_IMAGE);
+    // int prevFBO = nvgluBindFramebuffer(nvgFB);
+    // nvgluSetFramebufferSize(nvgFB, w, h, 0);
     nvgluSetViewport(0, 0, w, h);
-    nvgluClear(nvgRGBAf(0.3f, 0.3f, 0.32f, 1.0f));
-    nvgBeginFrame(vg, w, h, 1.0f);
-    nvgEndFrame(vg);
-    // blit to prev FBO and rebind it
-    nvgluBlitFramebuffer(nvgFB, prevFBO);
+    // clear to pink
+    nvgluClear(nvgRGBAf(0.8f, 0.0f, 0.5f, 1.0f));
+    // clear to grey
+    uint32_t * vgsw_blitter_fb = new uint32_t[w*h];
+    memset(vgsw_blitter_fb, 0x3F, w*h*4);
+    uint32_t * vgsw_blitter_fb_canvas = new uint32_t[w*h];
+    memset(vgsw_blitter_fb_canvas, 0, w*h*4);
+    // initialize terminal
+    flanterm_context * flanterm_ctx = flanterm_fb_init(
+      // void *(*_malloc)(size_t),
+        _malloc,
+      // void (*_free)(void *, size_t),
+        _free,
+      // uint32_t *framebuffer, size_t width, size_t height, size_t pitch (pixels to next line),
+        vgsw_blitter_fb,       w,            h,             w,
+      // uint8_t red_mask_size, uint8_t red_mask_shift,
+        1,                     0,
+      // uint8_t green_mask_size, uint8_t green_mask_shift,
+        1,                       8,
+      // uint8_t blue_mask_size, uint8_t blue_mask_shift,
+        1,                      16,
+      // uint32_t *canvas,
+        vgsw_blitter_fb_canvas,
+      // uint32_t *ansi_colours, uint32_t *ansi_bright_colours,
+        nullptr,                nullptr,
+      // uint32_t *default_bg, uint32_t *default_fg,
+        nullptr,              nullptr,
+      // uint32_t *default_bg_bright, uint32_t *default_fg_bright,
+        nullptr,                     nullptr,
+      // void *font, size_t font_width, size_t font_height, size_t font_spacing,
+        nullptr,    0,                 0,                  0,
+      // size_t font_scale_x, size_t font_scale_y,
+        0,                   0,
+      // size_t margin
+        0
+    );
+    flanterm_ctx->clear(flanterm_ctx, true);
+    flanterm_ctx->set_cursor_pos(flanterm_ctx, 0, 0);
+    // flanterm_ctx->raw_putchar(flanterm_ctx, 'h');
+    // flanterm_ctx->raw_putchar(flanterm_ctx, 'e');
+    // flanterm_ctx->raw_putchar(flanterm_ctx, 'l');
+    // flanterm_ctx->raw_putchar(flanterm_ctx, 'l');
+    // flanterm_ctx->raw_putchar(flanterm_ctx, 'o');
+    flanterm_ctx->double_buffer_flush(flanterm_ctx);
+    // blit pixels to current FBO
+    vgsw_blitter = nvgswuCreateBlitter();
+    nvgswuBlit(vgsw_blitter, vgsw_blitter_fb, w, h, 0, 0, w, h);
+    // clean up
+    nvgswuDeleteBlitter(vgsw_blitter);
+    flanterm_ctx->deinit(flanterm_ctx, _free);
+    delete[] vgsw_blitter_fb;
+    // delete[] vgsw_blitter_fb_canvas;
+    // nvgswDelete(vgsw);
+    // nvgBeginFrame(vg, w, h, 1.0f);
+    
+    
+    
+    // nvgEndFrame(vg);
+    // nvgluBlitFramebuffer(nvgFB, prevFBO);
+    
+    // nvgluDeleteFramebuffer(nvgFB);
     swapBuffers();
 }
 

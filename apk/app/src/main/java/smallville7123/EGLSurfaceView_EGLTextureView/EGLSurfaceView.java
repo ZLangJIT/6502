@@ -761,43 +761,6 @@ public class EGLSurfaceView extends SurfaceView implements SurfaceHolder.Callbac
         mEGLContextClientVersion = version;
     }
 
-    int mRendermode;
-
-    /**
-     * Set the rendering mode. When renderMode is
-     * RENDERMODE_CONTINUOUSLY, the renderer is called
-     * repeatedly to re-render the scene. When renderMode
-     * is RENDERMODE_WHEN_DIRTY, the renderer only rendered when the surface
-     * is created, or when {@link #swapBuffers} is called. Defaults to RENDERMODE_CONTINUOUSLY.
-     * <p>
-     * Using RENDERMODE_WHEN_DIRTY can improve battery life and overall system performance
-     * by allowing the GPU and CPU to idle when the view does not need to be updated.
-     * <p>
-     * This method can only be called after {@link #setRenderer(Renderer)}
-     * <p>
-     *
-     * @deprecated This has no effect on rendering.
-     * @param renderMode one of the RENDERMODE_X constants
-     * @see #RENDERMODE_CONTINUOUSLY
-     * @see #RENDERMODE_WHEN_DIRTY
-     */
-    public void setRenderMode(int renderMode) {
-        mRendermode = renderMode;
-    }
-
-    /**
-     * Get the current rendering mode. May be called
-     * from any thread. Must not be called before a renderer has been set.
-     *
-     * @deprecated This has no effect on rendering.
-     * @return the current rendering mode.
-     * @see #RENDERMODE_CONTINUOUSLY
-     * @see #RENDERMODE_WHEN_DIRTY
-     */
-    public int getRenderMode() {
-        return mRendermode;
-    }
-
     /**
      * Request that the renderer render a frame.
      * This method is typically used when the render mode has been set to

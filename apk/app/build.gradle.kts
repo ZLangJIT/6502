@@ -18,6 +18,15 @@ android {
         ndkPath = "NDK_DIRECTORY"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                // your host here
+                abiFilters += listOf("arm64-v8a")
+
+                //abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            }
+        }
     }
 
     signingConfigs {

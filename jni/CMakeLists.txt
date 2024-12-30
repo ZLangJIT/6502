@@ -20,6 +20,7 @@ target_link_libraries(
         emu_main
         MultiTouch
         nanovgXC
+        flanterm
 )
 
 target_include_directories(emu_main_jni PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -53,7 +53,7 @@ echo "[status] patching .jar aapt2 ..."
 find ~/.gradle -name 'aapt2-*-linux.jar' -type f | xargs -I{} jar -uvf {} -C $ANDROID_SDK_HOME/build-tools/35.0.0 aapt2 || true
 
 echo "[status] GRADLE: building ..."
-if ! ./gradlew build --console rich --configuration-cache --build-cache ; then
+if ! ./gradlew assemble --console rich --configuration-cache --build-cache ; then
   echo "[failed] cleaning up..."
   echo "[status] restoring version"
   mv version.old version

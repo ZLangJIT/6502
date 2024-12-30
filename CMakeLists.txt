@@ -13,6 +13,10 @@ add_library(nanovgXC STATIC nanovgXC/src/nanovg.c)
 target_include_directories(nanovgXC PUBLIC nanovgXC/src)
 install(TARGETS nanovgXC DESTINATION lib)
 
+add_library(flanterm STATIC flanterm/flanterm.c flanterm/flanterm_fb.c)
+target_include_directories(flanterm PUBLIC flanterm)
+install(TARGETS flanterm DESTINATION lib)
+
 if (false)
 build_root_add_cmake_package(${CMAKE_CURRENT_SOURCE_DIR}/imgui_fonts . imgui_fonts
     "" # no extra c flags
